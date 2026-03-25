@@ -100,7 +100,7 @@ export function ConfigPanel() {
               <span className="font-medium">{deliveryCostPerEntry} €</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Suplemento comprimento excessivo (>6m)</span>
+              <span className="text-muted-foreground">Suplemento comprimento excessivo ({'>'}6m)</span>
               <span className="font-medium">+20%</span>
             </div>
           </div>
