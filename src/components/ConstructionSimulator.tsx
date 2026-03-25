@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Trash2, TrendingDown } from "lucide-react";
-import { locations, origins, dimensionTypes } from "@/data/fleetData";
+import { origins, dimensionTypes, ccPrices } from "@/data/fleetData";
 import { fleetVehicles } from "@/data/fleetData";
 import {
   calculateFleetCostByMeters,
@@ -14,8 +14,12 @@ import {
   findCheapest,
   type ConstructionLine,
   type FleetCostResult,
+  type ConstructionPombalenseResult,
 } from "@/utils/costCalculations";
 import { CostComparisonChart } from "./CostComparisonChart";
+
+// Get unique CC destinations for the select
+const ccDestinations = ccPrices.map(p => p.destination).sort();
 
 export function ConstructionSimulator() {
   const [origin, setOrigin] = useState("");
@@ -26,12 +30,11 @@ export function ConstructionSimulator() {
   ]);
 
   const [results, setResults] = useState<{
-    pombalense: ReturnType<typeof calculateConstructionPombalense>;
+    pombalense: ConstructionPombalenseResult;
     fleetOptions: FleetCostResult[];
   } | null>(null);
 
-  const totalMeters = lines.reduce((sum, l) => sum + l.lengthMeters, 0);
-  const maxPlateLength = Math.max(...lines.map((l) => l.lengthMeters), 0);
+  const totalMeters = lines.reduce((sum, l) => sum + l.lengthMeters * l.numPlates, 0);
 
   const addLine = () => {
     setLines([...lines, { id: crypto.randomUUID(), numPlates: 0, dimensionLabel: "Chapas 4 a 6m", lengthMeters: 6 }]);
@@ -55,9 +58,9 @@ export function ConstructionSimulator() {
   };
 
   const simulate = () => {
-    if (totalKm <= 0) return;
+    if (!destination) return;
     const numDeliveries = lines.reduce((sum, l) => sum + l.numPlates, 0);
-    const pombalense = calculateConstructionPombalense(totalMeters, maxPlateLength, totalKm, Math.ceil(numDeliveries / 10));
+    const pombalense = calculateConstructionPombalense(destination, lines, Math.ceil(numDeliveries / 10));
     const fleetOptions = fleetVehicles.map((v) =>
       calculateFleetCostByMeters(v, totalKm, totalMeters)
     );
@@ -102,8 +105,8 @@ export function ConstructionSimulator() {
               <Select value={destination} onValueChange={setDestination}>
                 <SelectTrigger><SelectValue placeholder="Selecionar destino" /></SelectTrigger>
                 <SelectContent>
-                  {locations.map((l) => (
-                    <SelectItem key={l.id} value={l.name}>{l.name}</SelectItem>
+                  {ccDestinations.map((d) => (
+                    <SelectItem key={d} value={d}>{d}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -173,7 +176,7 @@ export function ConstructionSimulator() {
             <p className="text-sm text-muted-foreground">
               Comprimento Total: <span className="font-bold text-foreground">{totalMeters.toFixed(1)} m</span>
             </p>
-            <Button onClick={simulate} disabled={totalKm <= 0}>
+            <Button onClick={simulate} disabled={!destination}>
               Simular Custos
             </Button>
           </div>
@@ -190,9 +193,21 @@ export function ConstructionSimulator() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {results.pombalense.supplement > 0 && (
-                <div className="mb-4 p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-md text-sm">
-                  ⚠️ Suplemento por comprimento excessivo (&gt;6m): +{results.pombalense.supplement.toFixed(2)} €
+              {results.pombalense.prices.length > 0 && (
+                <div className="mb-4 p-3 bg-muted/50 rounded-md text-sm space-y-1">
+                  <p className="font-medium">Preços CC Pombalense ({destination}):</p>
+                  {results.pombalense.prices.map((p, i) => (
+                    <div key={i} className="flex justify-between">
+                      <span>{p.label}</span>
+                      <span className="font-medium">{p.cost !== null ? `${p.cost.toFixed(2)} €` : "N/D"}</span>
+                    </div>
+                  ))}
+                  {results.pombalense.deliveryCost > 0 && (
+                    <div className="flex justify-between border-t pt-1 mt-1">
+                      <span>Entregas internas</span>
+                      <span className="font-medium">{results.pombalense.deliveryCost.toFixed(2)} €</span>
+                    </div>
+                  )}
                 </div>
               )}
               <Table>

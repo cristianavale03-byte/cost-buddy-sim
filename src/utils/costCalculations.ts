@@ -1,8 +1,11 @@
 import {
   fleetVehicles,
-  genericWeightPrices,
+  cfZones,
+  ccPrices,
   deliveryCostPerEntry,
   type FleetVehicle,
+  type CFZone,
+  type CCPriceEntry,
 } from "@/data/fleetData";
 
 export interface CargoLine {
@@ -34,20 +37,73 @@ export interface PombalenseCostResult {
   deliveryCost: number;
   totalCost: number;
   numFreights: number;
+  zoneName?: string;
 }
 
-// Get Pombalense cost for a given weight in kg
-export function getPombalenseWeightCost(weightKg: number): number {
-  const sorted = [...genericWeightPrices]
-    .filter((p) => p.kgUpTo > 0)
-    .sort((a, b) => a.kgUpTo - b.kgUpTo);
+// Find the best matching CF zone for an origin + destination
+export function findCFZone(originName: string, destinationName: string): CFZone | null {
+  const originId = originName.includes("Gulpilhares") || originName.includes("Espinho") ? 1
+    : originName.includes("Meirinhas") ? 2
+    : originName.includes("Maia") ? 3
+    : 0;
 
+  const zones = cfZones.filter(z => z.originId === originId);
+  
+  // Try exact match first
+  for (const zone of zones) {
+    if (zone.destinations.some(d => d.toLowerCase() === destinationName.toLowerCase())) {
+      return zone;
+    }
+  }
+  
+  // Try partial match
+  for (const zone of zones) {
+    if (zone.destinations.some(d => 
+      d.toLowerCase().includes(destinationName.toLowerCase()) ||
+      destinationName.toLowerCase().includes(d.toLowerCase())
+    )) {
+      return zone;
+    }
+  }
+
+  // Fallback: return most common zone for this origin
+  return zones.length > 0 ? zones[zones.length - 1] : null;
+}
+
+// Get CF weight cost from a specific zone
+export function getCFWeightCost(zone: CFZone, weightKg: number): number {
+  const sorted = [...zone.prices].sort((a, b) => a.kgUpTo - b.kgUpTo);
+  
   for (const entry of sorted) {
     if (weightKg <= entry.kgUpTo) {
       return entry.cost;
     }
   }
+
+  // Beyond table: check if beyondTenTonPerTon exists
+  if (zone.beyondTenTonPerTon && weightKg > 10000) {
+    const tons = weightKg / 1000;
+    return zone.beyondTenTonPerTon * tons;
+  }
+
+  // Check full load prices
+  if (zone.fullLoadPrices) {
+    return zone.fullLoadPrices.threeAxle ?? zone.fullLoadPrices.trailer ?? sorted[sorted.length - 1]?.cost ?? 0;
+  }
+
   return sorted[sorted.length - 1]?.cost ?? 0;
+}
+
+// Get CC construction price for a destination and plate type
+export function getCCPrice(destinationName: string, ccField: keyof CCPriceEntry): number | null {
+  const entry = ccPrices.find(p => 
+    p.destination.toLowerCase() === destinationName.toLowerCase() ||
+    p.destination.toLowerCase().includes(destinationName.toLowerCase()) ||
+    destinationName.toLowerCase().includes(p.destination.toLowerCase())
+  );
+  if (!entry) return null;
+  const val = entry[ccField];
+  return typeof val === "number" ? val : null;
 }
 
 // Calculate number of freights needed
@@ -78,21 +134,32 @@ export function calculateFleetCost(
   };
 }
 
-// Calculate Pombalense cost for polymers/equipment
+// Calculate Pombalense cost using CF zone lookup
 export function calculatePombalenseCost(
   totalWeightTon: number,
-  hasInternalDelivery: boolean = true
+  originName: string,
+  destinationName: string,
+  numDeliveries: number = 1
 ): PombalenseCostResult {
+  const zone = findCFZone(originName, destinationName);
   const weightKg = totalWeightTon * 1000;
-  const weightCost = getPombalenseWeightCost(weightKg);
-  const numFreights = 1; // Pombalense handles in single load typically
-  const deliveryCost = hasInternalDelivery ? deliveryCostPerEntry * 3 : 0; // 3 deliveries as per model
+  
+  let weightCost = 0;
+  let zoneName = "Zona genérica";
+  
+  if (zone) {
+    weightCost = getCFWeightCost(zone, weightKg);
+    zoneName = zone.zoneName;
+  }
+  
+  const deliveryCost = numDeliveries > 1 ? (numDeliveries - 1) * deliveryCostPerEntry : 0;
 
   return {
     weightCost,
     deliveryCost,
     totalCost: weightCost + deliveryCost,
-    numFreights,
+    numFreights: 1,
+    zoneName,
   };
 }
 
@@ -100,9 +167,11 @@ export function calculatePombalenseCost(
 export function calculateAllPolymerOptions(
   totalWeightTon: number,
   totalKm: number,
-  hasInternalDelivery: boolean = true
+  originName: string = "",
+  destinationName: string = "",
+  numDeliveries: number = 1
 ) {
-  const pombalense = calculatePombalenseCost(totalWeightTon, hasInternalDelivery);
+  const pombalense = calculatePombalenseCost(totalWeightTon, originName, destinationName, numDeliveries);
   const fleetOptions = fleetVehicles.map((v) =>
     calculateFleetCost(v, totalKm, totalWeightTon)
   );
@@ -131,32 +200,47 @@ export function calculateFleetCostByMeters(
   };
 }
 
-// Calculate construction Pombalense cost
-export function calculateConstructionPombalense(
-  totalMeters: number,
-  maxPlateLength: number,
-  totalKm: number,
-  numDeliveries: number = 3
-): { metroCost: number; deliveryCost: number; totalCost: number; supplement: number } {
-  // Base metro cost scales with km and length
-  // From model: base cost ~332€ for 360km, Chapas 4-6m
-  const baseCostPerKm = 332 / 360;
-  let metroCost = baseCostPerKm * totalKm;
+// Calculate construction Pombalense cost using CC table
+export interface ConstructionPombalenseResult {
+  prices: { label: string; cost: number | null }[];
+  totalCost: number;
+  deliveryCost: number;
+  supplement: number;
+}
 
-  // Supplement for excessive length (>6m)
-  let supplement = 0;
-  if (maxPlateLength > 6) {
-    supplement = metroCost * 0.2; // 20% supplement
+export function calculateConstructionPombalense(
+  destinationName: string,
+  lines: ConstructionLine[],
+  numDeliveries: number = 1
+): ConstructionPombalenseResult {
+  const dimensionTypesMap: Record<string, keyof CCPriceEntry> = {
+    "Chapas 2×1.05m": "chapas2x1",
+    "Chapas 3×2m": "chapas3x2",
+    "Chapas 4 a 6m": "chapas4a6",
+    "Chapas 7 a 8m": "chapas7a8",
+  };
+
+  const prices: { label: string; cost: number | null }[] = [];
+  let totalCost = 0;
+
+  for (const line of lines) {
+    if (line.numPlates <= 0) continue;
+    const ccField = dimensionTypesMap[line.dimensionLabel];
+    if (!ccField) continue;
+    const unitCost = getCCPrice(destinationName, ccField);
+    prices.push({ label: `${line.numPlates}x ${line.dimensionLabel}`, cost: unitCost });
+    if (unitCost !== null) {
+      totalCost += unitCost; // CC prices are per full load
+    }
   }
 
-  metroCost += supplement;
-  const deliveryCost = numDeliveries * deliveryCostPerEntry;
+  const deliveryCost = numDeliveries > 0 ? numDeliveries * deliveryCostPerEntry : 0;
 
   return {
-    metroCost,
+    prices,
+    totalCost: totalCost + deliveryCost,
     deliveryCost,
-    totalCost: metroCost + deliveryCost,
-    supplement,
+    supplement: 0,
   };
 }
 

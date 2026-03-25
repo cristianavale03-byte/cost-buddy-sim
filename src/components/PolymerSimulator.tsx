@@ -42,7 +42,8 @@ export function PolymerSimulator() {
 
   const simulate = () => {
     if (totalKm <= 0 || totalWeight <= 0) return;
-    const result = calculateAllPolymerOptions(totalWeight, totalKm);
+    const numDeliveries = cargoLines.filter(l => l.client && l.weightTon > 0).length;
+    const result = calculateAllPolymerOptions(totalWeight, totalKm, origin, destination, numDeliveries);
     setResults(result);
   };
 
@@ -168,6 +169,11 @@ export function PolymerSimulator() {
       {/* Results */}
       {results && (
         <>
+          {results.pombalense.zoneName && (
+            <div className="text-sm text-muted-foreground px-1">
+              Tabela Pombalense aplicada: <span className="font-medium text-foreground">{results.pombalense.zoneName}</span>
+            </div>
+          )}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
