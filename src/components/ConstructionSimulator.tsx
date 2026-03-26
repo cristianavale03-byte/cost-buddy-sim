@@ -5,15 +5,23 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Trash2, TrendingDown, Lock } from "lucide-react";
+import { Plus, Trash2, TrendingDown, Lock, AlertTriangle } from "lucide-react";
 import { ccPrices, dimensionTypes, fleetVehicles, type CCPriceEntry } from "@/data/fleetData";
 import { calculateFleetCostByMeters, findCheapest, type FleetCostResult } from "@/utils/costCalculations";
 import { CostComparisonChart } from "./CostComparisonChart";
 import type { ConstructionLine } from "@/utils/costCalculations";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
+// Only destinations from CC table
 const ccDestinations = ccPrices.map(p => p.destination).sort();
 
-// Map dimension labels to CC fields, ordered by size
+const dimensionOrder = [
+  { label: "Chapas 2×1.05m", meters: 1.05 },
+  { label: "Chapas 3×2m", meters: 2 },
+  { label: "Chapas 4 a 6m", meters: 6 },
+  { label: "Chapas 7 a 8m", meters: 8 },
+];
+
 const dimensionToCCField: Record<string, keyof CCPriceEntry> = {
   "Chapas 2×1.05m": "chapas2x1",
   "Chapas 3×2m": "chapas3x2",
@@ -21,13 +29,9 @@ const dimensionToCCField: Record<string, keyof CCPriceEntry> = {
   "Chapas 7 a 8m": "chapas7a8",
 };
 
-// Ordered dimension sizes in meters for comparison
-const dimensionOrder = [
-  { label: "Chapas 2×1.05m", meters: 1.05 },
-  { label: "Chapas 3×2m", meters: 2 },
-  { label: "Chapas 4 a 6m", meters: 6 },
-  { label: "Chapas 7 a 8m", meters: 8 },
-];
+// Vehicle capacity limits for feasibility checks
+const MAX_VEHICLE_LENGTH_METERS = 13.6; // trailer max
+const MAX_VEHICLE_WEIGHT_TON = 15; // largest fleet vehicle
 
 interface ConstructionResult {
   destination: string;
@@ -43,6 +47,8 @@ interface ConstructionResult {
   custoKm: number | null;
   custoMetro: number | null;
   fleetOptions: FleetCostResult[];
+  impossible: boolean;
+  impossibleReason: string | null;
 }
 
 function getCCEntryPrice(entry: CCPriceEntry, field: keyof CCPriceEntry): number | null {
@@ -53,7 +59,8 @@ function getCCEntryPrice(entry: CCPriceEntry, field: keyof CCPriceEntry): number
 function calculateConstructionCost(
   destination: string,
   lines: ConstructionLine[],
-  totalKm: number
+  totalKm: number,
+  weightTon: number
 ): ConstructionResult | null {
   const entry = ccPrices.find(p =>
     p.destination.toLowerCase() === destination.toLowerCase() ||
@@ -76,41 +83,53 @@ function calculateConstructionCost(
     }
   }
 
-  // Total meters for freight calculation
   const totalMeters = lines.reduce((sum, l) => sum + l.lengthMeters * l.numPlates, 0);
 
-  // Get the CC field for the largest plate
+  // Feasibility check
+  if (largestMeters > MAX_VEHICLE_LENGTH_METERS) {
+    return {
+      destination, largestPlateLabel: largestLabel, largestPlateMeters: largestMeters,
+      custoBase: null, custo3Eixos: null, custoReboque: null, isExcessive: false,
+      numFreights: 0, totalMeters, custoFinal: 0, custoKm: null, custoMetro: null,
+      fleetOptions: [], impossible: true, impossibleReason: "comprimento excedente",
+    };
+  }
+
+  if (weightTon > MAX_VEHICLE_WEIGHT_TON) {
+    return {
+      destination, largestPlateLabel: largestLabel, largestPlateMeters: largestMeters,
+      custoBase: null, custo3Eixos: null, custoReboque: null, isExcessive: false,
+      numFreights: 0, totalMeters, custoFinal: 0, custoKm: null, custoMetro: null,
+      fleetOptions: [], impossible: true, impossibleReason: "peso excedente",
+    };
+  }
+
+  // Get cost based on largest plate
   const ccField = dimensionToCCField[largestLabel];
   const custoBase = ccField ? getCCEntryPrice(entry, ccField) : null;
 
-  // Check if excessive (chapas7a8 = largest standard dimension)
+  // Excessive = chapas 7-8m
   const isExcessive = largestLabel === "Chapas 7 a 8m";
-
   const custo3Eixos = getCCEntryPrice(entry, "threeAxle");
   const custoReboque = getCCEntryPrice(entry, "trailer");
 
-  // Determine the effective cost per freight
-  // If excessive length, use 3 eixos price; otherwise use base price
   let effectiveCostPerFreight: number;
   if (isExcessive && custo3Eixos !== null) {
     effectiveCostPerFreight = custo3Eixos;
   } else if (custoBase !== null) {
     effectiveCostPerFreight = custoBase;
   } else if (custo3Eixos !== null) {
-    // Fallback: if no base price exists for this dimension, try 3 eixos
     effectiveCostPerFreight = custo3Eixos;
   } else {
     effectiveCostPerFreight = 0;
   }
 
-  // Number of freights based on total meters and vehicle capacity
-  // Using trailer capacity (13.6m) as reference for subcontracting
+  // Freights based on total meters / vehicle capacity
   const vehicleCapacityMeters = isExcessive ? 13.6 : 12;
   const numFreights = totalMeters > 0 ? Math.ceil(totalMeters / vehicleCapacityMeters) : 1;
 
   const custoFinal = effectiveCostPerFreight * numFreights;
 
-  // Fleet options for comparison
   const fleetOptions = fleetVehicles.map(v =>
     calculateFleetCostByMeters(v, totalKm, totalMeters)
   );
@@ -129,12 +148,15 @@ function calculateConstructionCost(
     custoKm: totalKm > 0 ? custoFinal / totalKm : null,
     custoMetro: largestMeters > 0 ? custoFinal / largestMeters : null,
     fleetOptions,
+    impossible: false,
+    impossibleReason: null,
   };
 }
 
 export function ConstructionSimulator() {
   const [destination, setDestination] = useState("");
   const [totalKm, setTotalKm] = useState<number>(0);
+  const [weightTon, setWeightTon] = useState<number>(0);
   const [lines, setLines] = useState<ConstructionLine[]>([
     { id: crypto.randomUUID(), numPlates: 0, dimensionLabel: "Chapas 4 a 6m", lengthMeters: 6 },
   ]);
@@ -163,15 +185,15 @@ export function ConstructionSimulator() {
 
   const simulate = () => {
     if (!destination) return;
-    const result = calculateConstructionCost(destination, lines, totalKm);
+    const result = calculateConstructionCost(destination, lines, totalKm, weightTon);
     setResults(result);
   };
 
-  const cheapest = results
+  const cheapest = results && !results.impossible
     ? findCheapest(results.custoFinal, results.fleetOptions)
     : null;
 
-  const chartData = results
+  const chartData = results && !results.impossible
     ? [
         { name: "Pombalense", custo: Math.round(results.custoFinal * 100) / 100 },
         ...results.fleetOptions.map(o => ({
@@ -188,8 +210,7 @@ export function ConstructionSimulator() {
           <CardTitle className="text-lg">Dados do Transporte</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Fixed Origin */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="space-y-2">
               <Label className="flex items-center gap-1">
                 Origem <Lock className="h-3 w-3 text-muted-foreground" />
@@ -214,6 +235,16 @@ export function ConstructionSimulator() {
                 value={totalKm || ""}
                 onChange={e => setTotalKm(Number(e.target.value))}
                 placeholder="Ex: 360"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Peso Total (ton)</Label>
+              <Input
+                type="number"
+                value={weightTon || ""}
+                onChange={e => setWeightTon(Number(e.target.value))}
+                placeholder="Ex: 5"
+                step="0.1"
               />
             </div>
           </div>
@@ -279,7 +310,27 @@ export function ConstructionSimulator() {
         </CardContent>
       </Card>
 
-      {results && (
+      {results && results.impossible && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Viagem impossível</AlertTitle>
+          <AlertDescription>
+            Motivo: <span className="font-bold">{results.impossibleReason}</span>
+            {results.impossibleReason === "comprimento excedente" && (
+              <span className="block mt-1 text-sm">
+                A placa maior ({results.largestPlateMeters}m) excede a capacidade máxima do veículo ({MAX_VEHICLE_LENGTH_METERS}m).
+              </span>
+            )}
+            {results.impossibleReason === "peso excedente" && (
+              <span className="block mt-1 text-sm">
+                O peso total ({weightTon} ton) excede a capacidade máxima do veículo ({MAX_VEHICLE_WEIGHT_TON} ton).
+              </span>
+            )}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {results && !results.impossible && (
         <>
           <Card>
             <CardHeader>
@@ -289,8 +340,7 @@ export function ConstructionSimulator() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Summary info */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                 <div className="p-3 bg-muted/50 rounded-md">
                   <p className="text-xs text-muted-foreground">Origem</p>
                   <p className="font-semibold">Espinho</p>
@@ -307,9 +357,12 @@ export function ConstructionSimulator() {
                   <p className="text-xs text-muted-foreground">Total Metros</p>
                   <p className="font-semibold">{results.totalMeters.toFixed(1)} m</p>
                 </div>
+                <div className="p-3 bg-muted/50 rounded-md">
+                  <p className="text-xs text-muted-foreground">Nº de Fretes</p>
+                  <p className="font-semibold">{results.numFreights}</p>
+                </div>
               </div>
 
-              {/* Pricing breakdown */}
               <div className="p-4 border rounded-md space-y-2">
                 <p className="font-medium text-sm">Detalhe de Preços CC — {results.destination}</p>
                 
@@ -347,13 +400,12 @@ export function ConstructionSimulator() {
 
                 <div className="flex gap-6 text-xs text-muted-foreground pt-1">
                   <span>€/km: {results.custoKm !== null ? results.custoKm.toFixed(2) : "—"}</span>
-                  <span>€/metro: {results.custoMetro !== null ? results.custoMetro.toFixed(2) : "—"}</span>
+                  <span>€/metro (placa maior): {results.custoMetro !== null ? results.custoMetro.toFixed(2) : "—"}</span>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Comparison table */}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Comparação: Subcontratação vs Frota Própria</CardTitle>
