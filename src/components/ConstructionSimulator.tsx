@@ -125,8 +125,7 @@ function calculateConstructionCost(
     effectiveCostPerFreight = 0;
   }
 
-  // Freights now passed in from manual input
-  const numFreights = 1; // placeholder, will be overridden
+  const numFreights = manualFreights;
 
   const custoFinal = effectiveCostPerFreight * numFreights;
 
