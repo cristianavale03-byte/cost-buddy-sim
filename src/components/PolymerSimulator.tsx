@@ -19,6 +19,7 @@ export function PolymerSimulator() {
   const [origin, setOrigin] = useState("");
   const [destination, setDestination] = useState("");
   const [totalKm, setTotalKm] = useState<number>(0);
+  const [numFreightsManual, setNumFreightsManual] = useState<number>(1);
   const [cargoLines, setCargoLines] = useState<CargoLine[]>([
     { id: crypto.randomUUID(), client: "", weightTon: 0 },
   ]);
@@ -43,7 +44,7 @@ export function PolymerSimulator() {
   const simulate = () => {
     if (totalKm <= 0 || totalWeight <= 0) return;
     const numDeliveries = cargoLines.filter(l => l.client && l.weightTon > 0).length;
-    const result = calculateAllPolymerOptions(totalWeight, totalKm, origin, destination, numDeliveries);
+    const result = calculateAllPolymerOptions(totalWeight, totalKm, origin, destination, numDeliveries, numFreightsManual);
     setResults(result);
   };
 
@@ -69,7 +70,7 @@ export function PolymerSimulator() {
           <CardTitle className="text-lg">Dados do Transporte</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="space-y-2">
               <Label>Origem</Label>
               <Select value={origin} onValueChange={setOrigin}>
@@ -99,6 +100,16 @@ export function PolymerSimulator() {
                 value={totalKm || ""}
                 onChange={(e) => setTotalKm(Number(e.target.value))}
                 placeholder="Ex: 150"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Nº de Fretes</Label>
+              <Input
+                type="number"
+                value={numFreightsManual || ""}
+                onChange={(e) => setNumFreightsManual(Math.max(1, Number(e.target.value)))}
+                placeholder="1"
+                min={1}
               />
             </div>
           </div>

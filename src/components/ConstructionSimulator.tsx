@@ -60,7 +60,8 @@ function calculateConstructionCost(
   destination: string,
   lines: ConstructionLine[],
   totalKm: number,
-  weightTon: number
+  weightTon: number,
+  manualFreights: number = 1
 ): ConstructionResult | null {
   const entry = ccPrices.find(p =>
     p.destination.toLowerCase() === destination.toLowerCase() ||
@@ -124,9 +125,7 @@ function calculateConstructionCost(
     effectiveCostPerFreight = 0;
   }
 
-  // Freights based on total meters / vehicle capacity
-  const vehicleCapacityMeters = isExcessive ? 13.6 : 12;
-  const numFreights = totalMeters > 0 ? Math.ceil(totalMeters / vehicleCapacityMeters) : 1;
+  const numFreights = manualFreights;
 
   const custoFinal = effectiveCostPerFreight * numFreights;
 
@@ -160,6 +159,7 @@ export function ConstructionSimulator() {
   const [lines, setLines] = useState<ConstructionLine[]>([
     { id: crypto.randomUUID(), numPlates: 0, dimensionLabel: "Chapas 4 a 6m", lengthMeters: 6 },
   ]);
+  const [numFreightsManual, setNumFreightsManual] = useState<number>(1);
   const [results, setResults] = useState<ConstructionResult | null>(null);
 
   const totalMeters = lines.reduce((sum, l) => sum + l.lengthMeters * l.numPlates, 0);
@@ -185,7 +185,7 @@ export function ConstructionSimulator() {
 
   const simulate = () => {
     if (!destination) return;
-    const result = calculateConstructionCost(destination, lines, totalKm, weightTon);
+    const result = calculateConstructionCost(destination, lines, totalKm, weightTon, numFreightsManual);
     setResults(result);
   };
 
@@ -210,7 +210,7 @@ export function ConstructionSimulator() {
           <CardTitle className="text-lg">Dados do Transporte</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             <div className="space-y-2">
               <Label className="flex items-center gap-1">
                 Origem <Lock className="h-3 w-3 text-muted-foreground" />
@@ -245,6 +245,16 @@ export function ConstructionSimulator() {
                 onChange={e => setWeightTon(Number(e.target.value))}
                 placeholder="Ex: 5"
                 step="0.1"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Nº de Fretes</Label>
+              <Input
+                type="number"
+                value={numFreightsManual || ""}
+                onChange={e => setNumFreightsManual(Math.max(1, Number(e.target.value)))}
+                placeholder="1"
+                min={1}
               />
             </div>
           </div>
