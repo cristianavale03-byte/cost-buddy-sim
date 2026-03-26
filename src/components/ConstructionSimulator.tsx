@@ -160,6 +160,7 @@ export function ConstructionSimulator() {
   const [lines, setLines] = useState<ConstructionLine[]>([
     { id: crypto.randomUUID(), numPlates: 0, dimensionLabel: "Chapas 4 a 6m", lengthMeters: 6 },
   ]);
+  const [numFreightsManual, setNumFreightsManual] = useState<number>(1);
   const [results, setResults] = useState<ConstructionResult | null>(null);
 
   const totalMeters = lines.reduce((sum, l) => sum + l.lengthMeters * l.numPlates, 0);
