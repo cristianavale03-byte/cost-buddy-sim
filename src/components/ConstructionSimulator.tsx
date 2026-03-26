@@ -5,34 +5,140 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Trash2, TrendingDown } from "lucide-react";
-import { origins, dimensionTypes, ccPrices } from "@/data/fleetData";
-import { fleetVehicles } from "@/data/fleetData";
-import {
-  calculateFleetCostByMeters,
-  calculateConstructionPombalense,
-  findCheapest,
-  type ConstructionLine,
-  type FleetCostResult,
-  type ConstructionPombalenseResult,
-} from "@/utils/costCalculations";
+import { Plus, Trash2, TrendingDown, Lock } from "lucide-react";
+import { ccPrices, dimensionTypes, fleetVehicles, type CCPriceEntry } from "@/data/fleetData";
+import { calculateFleetCostByMeters, findCheapest, type FleetCostResult } from "@/utils/costCalculations";
 import { CostComparisonChart } from "./CostComparisonChart";
+import type { ConstructionLine } from "@/utils/costCalculations";
 
-// Get unique CC destinations for the select
 const ccDestinations = ccPrices.map(p => p.destination).sort();
 
+// Map dimension labels to CC fields, ordered by size
+const dimensionToCCField: Record<string, keyof CCPriceEntry> = {
+  "Chapas 2×1.05m": "chapas2x1",
+  "Chapas 3×2m": "chapas3x2",
+  "Chapas 4 a 6m": "chapas4a6",
+  "Chapas 7 a 8m": "chapas7a8",
+};
+
+// Ordered dimension sizes in meters for comparison
+const dimensionOrder = [
+  { label: "Chapas 2×1.05m", meters: 1.05 },
+  { label: "Chapas 3×2m", meters: 2 },
+  { label: "Chapas 4 a 6m", meters: 6 },
+  { label: "Chapas 7 a 8m", meters: 8 },
+];
+
+interface ConstructionResult {
+  destination: string;
+  largestPlateLabel: string;
+  largestPlateMeters: number;
+  custoBase: number | null;
+  custo3Eixos: number | null;
+  custoReboque: number | null;
+  isExcessive: boolean;
+  numFreights: number;
+  totalMeters: number;
+  custoFinal: number;
+  custoKm: number | null;
+  custoMetro: number | null;
+  fleetOptions: FleetCostResult[];
+}
+
+function getCCEntryPrice(entry: CCPriceEntry, field: keyof CCPriceEntry): number | null {
+  const val = entry[field];
+  return typeof val === "number" ? val : null;
+}
+
+function calculateConstructionCost(
+  destination: string,
+  lines: ConstructionLine[],
+  totalKm: number
+): ConstructionResult | null {
+  const entry = ccPrices.find(p =>
+    p.destination.toLowerCase() === destination.toLowerCase() ||
+    p.destination.toLowerCase().includes(destination.toLowerCase()) ||
+    destination.toLowerCase().includes(p.destination.toLowerCase())
+  );
+
+  if (!entry) return null;
+
+  // Find the largest plate dimension
+  let largestMeters = 0;
+  let largestLabel = dimensionOrder[0].label;
+
+  for (const line of lines) {
+    if (line.numPlates <= 0) continue;
+    const dim = dimensionOrder.find(d => d.label === line.dimensionLabel);
+    if (dim && dim.meters > largestMeters) {
+      largestMeters = dim.meters;
+      largestLabel = dim.label;
+    }
+  }
+
+  // Total meters for freight calculation
+  const totalMeters = lines.reduce((sum, l) => sum + l.lengthMeters * l.numPlates, 0);
+
+  // Get the CC field for the largest plate
+  const ccField = dimensionToCCField[largestLabel];
+  const custoBase = ccField ? getCCEntryPrice(entry, ccField) : null;
+
+  // Check if excessive (chapas7a8 = largest standard dimension)
+  const isExcessive = largestLabel === "Chapas 7 a 8m";
+
+  const custo3Eixos = getCCEntryPrice(entry, "threeAxle");
+  const custoReboque = getCCEntryPrice(entry, "trailer");
+
+  // Determine the effective cost per freight
+  // If excessive length, use 3 eixos price; otherwise use base price
+  let effectiveCostPerFreight: number;
+  if (isExcessive && custo3Eixos !== null) {
+    effectiveCostPerFreight = custo3Eixos;
+  } else if (custoBase !== null) {
+    effectiveCostPerFreight = custoBase;
+  } else if (custo3Eixos !== null) {
+    // Fallback: if no base price exists for this dimension, try 3 eixos
+    effectiveCostPerFreight = custo3Eixos;
+  } else {
+    effectiveCostPerFreight = 0;
+  }
+
+  // Number of freights based on total meters and vehicle capacity
+  // Using trailer capacity (13.6m) as reference for subcontracting
+  const vehicleCapacityMeters = isExcessive ? 13.6 : 12;
+  const numFreights = totalMeters > 0 ? Math.ceil(totalMeters / vehicleCapacityMeters) : 1;
+
+  const custoFinal = effectiveCostPerFreight * numFreights;
+
+  // Fleet options for comparison
+  const fleetOptions = fleetVehicles.map(v =>
+    calculateFleetCostByMeters(v, totalKm, totalMeters)
+  );
+
+  return {
+    destination,
+    largestPlateLabel: largestLabel,
+    largestPlateMeters: largestMeters,
+    custoBase,
+    custo3Eixos: isExcessive ? custo3Eixos : null,
+    custoReboque: isExcessive ? custoReboque : null,
+    isExcessive,
+    numFreights,
+    totalMeters,
+    custoFinal,
+    custoKm: totalKm > 0 ? custoFinal / totalKm : null,
+    custoMetro: largestMeters > 0 ? custoFinal / largestMeters : null,
+    fleetOptions,
+  };
+}
+
 export function ConstructionSimulator() {
-  const [origin, setOrigin] = useState("");
   const [destination, setDestination] = useState("");
   const [totalKm, setTotalKm] = useState<number>(0);
   const [lines, setLines] = useState<ConstructionLine[]>([
     { id: crypto.randomUUID(), numPlates: 0, dimensionLabel: "Chapas 4 a 6m", lengthMeters: 6 },
   ]);
-
-  const [results, setResults] = useState<{
-    pombalense: ConstructionPombalenseResult;
-    fleetOptions: FleetCostResult[];
-  } | null>(null);
+  const [results, setResults] = useState<ConstructionResult | null>(null);
 
   const totalMeters = lines.reduce((sum, l) => sum + l.lengthMeters * l.numPlates, 0);
 
@@ -41,40 +147,34 @@ export function ConstructionSimulator() {
   };
 
   const removeLine = (id: string) => {
-    if (lines.length > 1) setLines(lines.filter((l) => l.id !== id));
+    if (lines.length > 1) setLines(lines.filter(l => l.id !== id));
   };
 
   const updateDimension = (id: string, label: string) => {
-    const dim = dimensionTypes.find((d) => d.label === label);
-    setLines(
-      lines.map((l) =>
-        l.id === id ? { ...l, dimensionLabel: label, lengthMeters: dim?.meters ?? 6 } : l
-      )
-    );
+    const dim = dimensionTypes.find(d => d.label === label);
+    setLines(lines.map(l =>
+      l.id === id ? { ...l, dimensionLabel: label, lengthMeters: dim?.meters ?? 6 } : l
+    ));
   };
 
   const updatePlates = (id: string, num: number) => {
-    setLines(lines.map((l) => (l.id === id ? { ...l, numPlates: num } : l)));
+    setLines(lines.map(l => (l.id === id ? { ...l, numPlates: num } : l)));
   };
 
   const simulate = () => {
     if (!destination) return;
-    const numDeliveries = lines.reduce((sum, l) => sum + l.numPlates, 0);
-    const pombalense = calculateConstructionPombalense(destination, lines, Math.ceil(numDeliveries / 10));
-    const fleetOptions = fleetVehicles.map((v) =>
-      calculateFleetCostByMeters(v, totalKm, totalMeters)
-    );
-    setResults({ pombalense, fleetOptions });
+    const result = calculateConstructionCost(destination, lines, totalKm);
+    setResults(result);
   };
 
   const cheapest = results
-    ? findCheapest(results.pombalense.totalCost, results.fleetOptions)
+    ? findCheapest(results.custoFinal, results.fleetOptions)
     : null;
 
   const chartData = results
     ? [
-        { name: "Pombalense", custo: Math.round(results.pombalense.totalCost * 100) / 100 },
-        ...results.fleetOptions.map((o) => ({
+        { name: "Pombalense", custo: Math.round(results.custoFinal * 100) / 100 },
+        ...results.fleetOptions.map(o => ({
           name: o.vehicleName,
           custo: Math.round(o.totalCost * 100) / 100,
         })),
@@ -89,23 +189,19 @@ export function ConstructionSimulator() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Fixed Origin */}
             <div className="space-y-2">
-              <Label>Origem</Label>
-              <Select value={origin} onValueChange={setOrigin}>
-                <SelectTrigger><SelectValue placeholder="Selecionar origem" /></SelectTrigger>
-                <SelectContent>
-                  {origins.map((o) => (
-                    <SelectItem key={o.id} value={o.name}>{o.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label className="flex items-center gap-1">
+                Origem <Lock className="h-3 w-3 text-muted-foreground" />
+              </Label>
+              <Input value="Espinho" disabled className="bg-muted font-medium" />
             </div>
             <div className="space-y-2">
               <Label>Destino</Label>
               <Select value={destination} onValueChange={setDestination}>
                 <SelectTrigger><SelectValue placeholder="Selecionar destino" /></SelectTrigger>
                 <SelectContent>
-                  {ccDestinations.map((d) => (
+                  {ccDestinations.map(d => (
                     <SelectItem key={d} value={d}>{d}</SelectItem>
                   ))}
                 </SelectContent>
@@ -116,7 +212,7 @@ export function ConstructionSimulator() {
               <Input
                 type="number"
                 value={totalKm || ""}
-                onChange={(e) => setTotalKm(Number(e.target.value))}
+                onChange={e => setTotalKm(Number(e.target.value))}
                 placeholder="Ex: 360"
               />
             </div>
@@ -142,21 +238,21 @@ export function ConstructionSimulator() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {lines.map((line) => (
+              {lines.map(line => (
                 <TableRow key={line.id}>
                   <TableCell>
                     <Input
                       type="number"
                       value={line.numPlates || ""}
-                      onChange={(e) => updatePlates(line.id, Number(e.target.value))}
+                      onChange={e => updatePlates(line.id, Number(e.target.value))}
                       placeholder="0"
                     />
                   </TableCell>
                   <TableCell>
-                    <Select value={line.dimensionLabel} onValueChange={(v) => updateDimension(line.id, v)}>
+                    <Select value={line.dimensionLabel} onValueChange={v => updateDimension(line.id, v)}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        {dimensionTypes.map((d) => (
+                        {dimensionTypes.map(d => (
                           <SelectItem key={d.label} value={d.label}>{d.label}</SelectItem>
                         ))}
                       </SelectContent>
@@ -189,27 +285,80 @@ export function ConstructionSimulator() {
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <TrendingDown className="h-5 w-5" />
-                Resultados da Simulação
+                Resultados — Subcontratação (Pombalense)
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              {results.pombalense.prices.length > 0 && (
-                <div className="mb-4 p-3 bg-muted/50 rounded-md text-sm space-y-1">
-                  <p className="font-medium">Preços CC Pombalense ({destination}):</p>
-                  {results.pombalense.prices.map((p, i) => (
-                    <div key={i} className="flex justify-between">
-                      <span>{p.label}</span>
-                      <span className="font-medium">{p.cost !== null ? `${p.cost.toFixed(2)} €` : "N/D"}</span>
-                    </div>
-                  ))}
-                  {results.pombalense.deliveryCost > 0 && (
-                    <div className="flex justify-between border-t pt-1 mt-1">
-                      <span>Entregas internas</span>
-                      <span className="font-medium">{results.pombalense.deliveryCost.toFixed(2)} €</span>
-                    </div>
-                  )}
+            <CardContent className="space-y-4">
+              {/* Summary info */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="p-3 bg-muted/50 rounded-md">
+                  <p className="text-xs text-muted-foreground">Origem</p>
+                  <p className="font-semibold">Espinho</p>
                 </div>
-              )}
+                <div className="p-3 bg-muted/50 rounded-md">
+                  <p className="text-xs text-muted-foreground">Destino</p>
+                  <p className="font-semibold">{results.destination}</p>
+                </div>
+                <div className="p-3 bg-muted/50 rounded-md">
+                  <p className="text-xs text-muted-foreground">Placa Maior</p>
+                  <p className="font-semibold">{results.largestPlateLabel} ({results.largestPlateMeters}m)</p>
+                </div>
+                <div className="p-3 bg-muted/50 rounded-md">
+                  <p className="text-xs text-muted-foreground">Total Metros</p>
+                  <p className="font-semibold">{results.totalMeters.toFixed(1)} m</p>
+                </div>
+              </div>
+
+              {/* Pricing breakdown */}
+              <div className="p-4 border rounded-md space-y-2">
+                <p className="font-medium text-sm">Detalhe de Preços CC — {results.destination}</p>
+                
+                <div className="flex justify-between text-sm">
+                  <span>Custo Base ({results.largestPlateLabel})</span>
+                  <span className="font-medium">
+                    {results.custoBase !== null ? `${results.custoBase.toFixed(2)} €` : "N/D"}
+                  </span>
+                </div>
+
+                {results.isExcessive && (
+                  <>
+                    <div className="flex justify-between text-sm border-t pt-1">
+                      <span className="text-primary font-medium">Custo 3 Eixos (aplicado)</span>
+                      <span className="font-bold text-primary">
+                        {results.custo3Eixos !== null ? `${results.custo3Eixos.toFixed(2)} €` : "N/D"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm text-muted-foreground">
+                      <span>Custo Reboque (referência)</span>
+                      <span>{results.custoReboque !== null ? `${results.custoReboque.toFixed(2)} €` : "N/D"}</span>
+                    </div>
+                  </>
+                )}
+
+                <div className="flex justify-between text-sm border-t pt-1">
+                  <span>Nº de Fretes</span>
+                  <span className="font-medium">{results.numFreights}</span>
+                </div>
+
+                <div className="flex justify-between text-sm font-bold border-t pt-2 text-lg">
+                  <span>Custo Total Final</span>
+                  <span>{results.custoFinal.toFixed(2)} €</span>
+                </div>
+
+                <div className="flex gap-6 text-xs text-muted-foreground pt-1">
+                  <span>€/km: {results.custoKm !== null ? results.custoKm.toFixed(2) : "—"}</span>
+                  <span>€/metro: {results.custoMetro !== null ? results.custoMetro.toFixed(2) : "—"}</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Comparison table */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Comparação: Subcontratação vs Frota Própria</CardTitle>
+            </CardHeader>
+            <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -229,11 +378,11 @@ export function ConstructionSimulator() {
                         </span>
                       )}
                     </TableCell>
-                    <TableCell className="text-right">1</TableCell>
-                    <TableCell className="text-right font-bold">{results.pombalense.totalCost.toFixed(2)} €</TableCell>
-                    <TableCell className="text-right">{totalKm > 0 ? (results.pombalense.totalCost / totalKm).toFixed(2) : "-"}</TableCell>
+                    <TableCell className="text-right">{results.numFreights}</TableCell>
+                    <TableCell className="text-right font-bold">{results.custoFinal.toFixed(2)} €</TableCell>
+                    <TableCell className="text-right">{results.custoKm !== null ? results.custoKm.toFixed(2) : "—"}</TableCell>
                   </TableRow>
-                  {results.fleetOptions.map((opt) => (
+                  {results.fleetOptions.map(opt => (
                     <TableRow
                       key={opt.vehicleName}
                       className={cheapest === opt.vehicleName ? "bg-green-50 dark:bg-green-950/30" : ""}
@@ -248,7 +397,7 @@ export function ConstructionSimulator() {
                       </TableCell>
                       <TableCell className="text-right">{opt.numFreights}</TableCell>
                       <TableCell className="text-right font-bold">{opt.totalCost.toFixed(2)} €</TableCell>
-                      <TableCell className="text-right">{opt.costPerKm2?.toFixed(2) ?? "-"}</TableCell>
+                      <TableCell className="text-right">{opt.costPerKm2?.toFixed(2) ?? "—"}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
