@@ -124,9 +124,8 @@ function calculateConstructionCost(
     effectiveCostPerFreight = 0;
   }
 
-  // Freights based on total meters / vehicle capacity
-  const vehicleCapacityMeters = isExcessive ? 13.6 : 12;
-  const numFreights = totalMeters > 0 ? Math.ceil(totalMeters / vehicleCapacityMeters) : 1;
+  // Freights now passed in from manual input
+  const numFreights = 1; // placeholder, will be overridden
 
   const custoFinal = effectiveCostPerFreight * numFreights;
 
