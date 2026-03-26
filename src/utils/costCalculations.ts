@@ -169,12 +169,22 @@ export function calculateAllPolymerOptions(
   totalKm: number,
   originName: string = "",
   destinationName: string = "",
-  numDeliveries: number = 1
+  numDeliveries: number = 1,
+  manualFreights: number = 1
 ) {
   const pombalense = calculatePombalenseCost(totalWeightTon, originName, destinationName, numDeliveries);
-  const fleetOptions = fleetVehicles.map((v) =>
-    calculateFleetCost(v, totalKm, totalWeightTon)
-  );
+  // Apply manual freights to pombalense
+  pombalense.numFreights = manualFreights;
+  pombalense.totalCost = (pombalense.weightCost + pombalense.deliveryCost) * manualFreights;
+  
+  const fleetOptions = fleetVehicles.map((v) => {
+    const result = calculateFleetCost(v, totalKm, totalWeightTon);
+    result.numFreights = manualFreights;
+    result.totalCost = v.costPerKm * (totalKm * 2) * manualFreights;
+    result.costPerTon = totalWeightTon > 0 ? result.totalCost / totalWeightTon : 0;
+    result.costPerKm2 = totalKm > 0 ? result.totalCost / totalKm : 0;
+    return result;
+  });
 
   return { pombalense, fleetOptions };
 }
