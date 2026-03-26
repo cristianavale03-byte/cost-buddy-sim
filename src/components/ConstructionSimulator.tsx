@@ -211,7 +211,7 @@ export function ConstructionSimulator() {
           <CardTitle className="text-lg">Dados do Transporte</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             <div className="space-y-2">
               <Label className="flex items-center gap-1">
                 Origem <Lock className="h-3 w-3 text-muted-foreground" />
