@@ -70,7 +70,7 @@ export function PolymerSimulator() {
           <CardTitle className="text-lg">Dados do Transporte</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="space-y-2">
               <Label>Origem</Label>
               <Select value={origin} onValueChange={setOrigin}>
