@@ -44,7 +44,7 @@ export function PolymerSimulator() {
   const simulate = () => {
     if (totalKm <= 0 || totalWeight <= 0) return;
     const numDeliveries = cargoLines.filter(l => l.client && l.weightTon > 0).length;
-    const result = calculateAllPolymerOptions(totalWeight, totalKm, origin, destination, numDeliveries);
+    const result = calculateAllPolymerOptions(totalWeight, totalKm, origin, destination, numDeliveries, numFreightsManual);
     setResults(result);
   };
 
