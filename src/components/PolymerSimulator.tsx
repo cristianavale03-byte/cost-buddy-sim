@@ -19,6 +19,7 @@ export function PolymerSimulator() {
   const [origin, setOrigin] = useState("");
   const [destination, setDestination] = useState("");
   const [totalKm, setTotalKm] = useState<number>(0);
+  const [numFreightsManual, setNumFreightsManual] = useState<number>(1);
   const [cargoLines, setCargoLines] = useState<CargoLine[]>([
     { id: crypto.randomUUID(), client: "", weightTon: 0 },
   ]);
