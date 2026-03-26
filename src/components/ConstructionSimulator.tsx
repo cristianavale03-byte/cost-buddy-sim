@@ -185,7 +185,7 @@ export function ConstructionSimulator() {
 
   const simulate = () => {
     if (!destination) return;
-    const result = calculateConstructionCost(destination, lines, totalKm, weightTon);
+    const result = calculateConstructionCost(destination, lines, totalKm, weightTon, numFreightsManual);
     setResults(result);
   };
 
