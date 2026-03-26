@@ -248,6 +248,16 @@ export function ConstructionSimulator() {
                 step="0.1"
               />
             </div>
+            <div className="space-y-2">
+              <Label>Nº de Fretes</Label>
+              <Input
+                type="number"
+                value={numFreightsManual || ""}
+                onChange={e => setNumFreightsManual(Math.max(1, Number(e.target.value)))}
+                placeholder="1"
+                min={1}
+              />
+            </div>
           </div>
         </CardContent>
       </Card>
