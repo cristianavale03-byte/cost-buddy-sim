@@ -60,7 +60,8 @@ function calculateConstructionCost(
   destination: string,
   lines: ConstructionLine[],
   totalKm: number,
-  weightTon: number
+  weightTon: number,
+  manualFreights: number = 1
 ): ConstructionResult | null {
   const entry = ccPrices.find(p =>
     p.destination.toLowerCase() === destination.toLowerCase() ||
