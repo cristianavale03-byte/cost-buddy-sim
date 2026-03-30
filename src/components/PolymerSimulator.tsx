@@ -5,27 +5,39 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Trash2, TrendingDown } from "lucide-react";
-import { locations, origins } from "@/data/fleetData";
-import { fleetVehicles } from "@/data/fleetData";
+import { Plus, Trash2, TrendingDown, Info } from "lucide-react";
+import { origins, cfZones } from "@/data/fleetData";
 import {
   calculateAllPolymerOptions,
   findCheapest,
+  findCFZone,
   type CargoLine,
 } from "@/utils/costCalculations";
 import { CostComparisonChart } from "./CostComparisonChart";
+import { usePombalenseExtraRate } from "@/hooks/usePombalenseExtraRate";
 
 export function PolymerSimulator() {
   const [origin, setOrigin] = useState("");
   const [destination, setDestination] = useState("");
   const [totalKm, setTotalKm] = useState<number>(0);
+  // IMPROVED: renamed visible label to "Deslocações"
   const [numFreightsManual, setNumFreightsManual] = useState<number>(1);
   const [cargoLines, setCargoLines] = useState<CargoLine[]>([
     { id: crypto.randomUUID(), client: "", weightTon: 0 },
   ]);
   const [results, setResults] = useState<ReturnType<typeof calculateAllPolymerOptions> | null>(null);
+  const { rate: extraRate } = usePombalenseExtraRate();
 
   const totalWeight = cargoLines.reduce((sum, l) => sum + l.weightTon, 0);
+
+  // IMPROVED: filter destinations by selected origin's cfZones
+  const originId = origin.includes("Gulpilhares") || origin.includes("Espinho") ? 1
+    : origin.includes("Meirinhas") ? 2
+    : origin.includes("Maia") ? 3
+    : 0;
+  const filteredDestinations = origin
+    ? [...new Set(cfZones.filter(z => z.originId === originId).flatMap(z => z.destinations))].sort()
+    : [];
 
   const addLine = () => {
     setCargoLines([...cargoLines, { id: crypto.randomUUID(), client: "", weightTon: 0 }]);
@@ -41,12 +53,29 @@ export function PolymerSimulator() {
     setCargoLines(cargoLines.map((l) => (l.id === id ? { ...l, [field]: value } : l)));
   };
 
+  // IMPROVED: reset destination when origin changes
+  const handleOriginChange = (val: string) => {
+    setOrigin(val);
+    setDestination("");
+    setResults(null);
+  };
+
   const simulate = () => {
     if (totalKm <= 0 || totalWeight <= 0) return;
     const numDeliveries = cargoLines.filter(l => l.client && l.weightTon > 0).length;
     const result = calculateAllPolymerOptions(totalWeight, totalKm, origin, destination, numDeliveries, numFreightsManual);
+    
+    // IMPROVED: apply extra rate to weightCost before summing
+    if (extraRate > 0) {
+      result.pombalense.weightCost = result.pombalense.weightCost * (1 + extraRate / 100);
+      result.pombalense.totalCost = (result.pombalense.weightCost + result.pombalense.deliveryCost) * numFreightsManual;
+    }
+    
     setResults(result);
   };
+
+  // IMPROVED: if findCFZone returns null, pombalense has no valid cost
+  const zoneFound = results ? findCFZone(origin, destination) !== null : true;
 
   const cheapest = results
     ? findCheapest(results.pombalense.totalCost, results.fleetOptions)
@@ -54,7 +83,7 @@ export function PolymerSimulator() {
 
   const chartData = results
     ? [
-        { name: "Pombalense", custo: Math.round(results.pombalense.totalCost * 100) / 100 },
+        ...(zoneFound ? [{ name: "Pombalense", custo: Math.round(results.pombalense.totalCost * 100) / 100 }] : []),
         ...results.fleetOptions.map((o) => ({
           name: o.vehicleName,
           custo: Math.round(o.totalCost * 100) / 100,
@@ -73,7 +102,8 @@ export function PolymerSimulator() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="space-y-2">
               <Label>Origem</Label>
-              <Select value={origin} onValueChange={setOrigin}>
+              {/* IMPROVED: origin change resets destination */}
+              <Select value={origin} onValueChange={handleOriginChange}>
                 <SelectTrigger><SelectValue placeholder="Selecionar origem" /></SelectTrigger>
                 <SelectContent>
                   {origins.map((o) => (
@@ -84,26 +114,31 @@ export function PolymerSimulator() {
             </div>
             <div className="space-y-2">
               <Label>Destino</Label>
-              <Select value={destination} onValueChange={setDestination}>
-                <SelectTrigger><SelectValue placeholder="Selecionar destino" /></SelectTrigger>
+              {/* IMPROVED: destinations filtered by origin; disabled if no origin */}
+              <Select value={destination} onValueChange={setDestination} disabled={!origin}>
+                <SelectTrigger>
+                  <SelectValue placeholder={origin ? "Selecionar destino" : "Seleciona primeiro a origem"} />
+                </SelectTrigger>
                 <SelectContent>
-                  {locations.map((l) => (
-                    <SelectItem key={l.id} value={l.name}>{l.name}</SelectItem>
+                  {filteredDestinations.map((d) => (
+                    <SelectItem key={d} value={d}>{d}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Km Totais (ida)</Label>
+              {/* IMPROVED: label changed to ida + volta */}
+              <Label>Km Totais (ida + volta)</Label>
               <Input
                 type="number"
                 value={totalKm || ""}
                 onChange={(e) => setTotalKm(Number(e.target.value))}
-                placeholder="Ex: 150"
+                placeholder="Ex: 300"
               />
             </div>
             <div className="space-y-2">
-              <Label>Nº de Fretes</Label>
+              {/* IMPROVED: renamed from "Fretes" to "Deslocações" */}
+              <Label>Nº de Deslocações</Label>
               <Input
                 type="number"
                 value={numFreightsManual || ""}
@@ -111,6 +146,10 @@ export function PolymerSimulator() {
                 placeholder="1"
                 min={1}
               />
+              {/* IMPROVED: info note about extra delivery cost */}
+              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                <Info className="h-3 w-3" /> Cada deslocação extra é cobrada a 25 € pela Pombalense
+              </p>
             </div>
           </div>
         </CardContent>
@@ -197,26 +236,34 @@ export function PolymerSimulator() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Opção</TableHead>
-                    <TableHead className="text-right">Nº Fretes</TableHead>
+                    {/* IMPROVED: renamed column header */}
+                    <TableHead className="text-right">Nº Deslocações</TableHead>
                     <TableHead className="text-right">Custo Total (€)</TableHead>
                     <TableHead className="text-right">€/ton</TableHead>
                     <TableHead className="text-right">€/km</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  <TableRow className={cheapest === "Pombalense" ? "bg-green-50 dark:bg-green-950/30" : ""}>
+                  {/* IMPROVED: show "—" if no zone found */}
+                  <TableRow className={zoneFound && cheapest === "Pombalense" ? "bg-green-50 dark:bg-green-950/30" : ""}>
                     <TableCell className="font-medium">
                       Pombalense (Subcontratação)
-                      {cheapest === "Pombalense" && (
+                      {zoneFound && cheapest === "Pombalense" && (
                         <span className="ml-2 text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-2 py-0.5 rounded-full">
                           Mais económico
                         </span>
                       )}
+                      {/* IMPROVED: show extra rate badge */}
+                      {zoneFound && extraRate > 0 && (
+                        <span className="ml-2 text-xs bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200 px-2 py-0.5 rounded-full">
+                          +{extraRate}% aplicado
+                        </span>
+                      )}
                     </TableCell>
-                    <TableCell className="text-right">{results.pombalense.numFreights}</TableCell>
-                    <TableCell className="text-right font-bold">{results.pombalense.totalCost.toFixed(2)} €</TableCell>
-                    <TableCell className="text-right">{totalWeight > 0 ? (results.pombalense.totalCost / totalWeight).toFixed(2) : "-"}</TableCell>
-                    <TableCell className="text-right">{totalKm > 0 ? (results.pombalense.totalCost / totalKm).toFixed(2) : "-"}</TableCell>
+                    <TableCell className="text-right">{zoneFound ? results.pombalense.numFreights : "—"}</TableCell>
+                    <TableCell className="text-right font-bold">{zoneFound ? `${results.pombalense.totalCost.toFixed(2)} €` : "—"}</TableCell>
+                    <TableCell className="text-right">{zoneFound && totalWeight > 0 ? (results.pombalense.totalCost / totalWeight).toFixed(2) : "—"}</TableCell>
+                    <TableCell className="text-right">{zoneFound && totalKm > 0 ? (results.pombalense.totalCost / totalKm).toFixed(2) : "—"}</TableCell>
                   </TableRow>
                   {results.fleetOptions.map((opt) => {
                     const isWeightExcessive = totalWeight > opt.capacityTon;
@@ -232,12 +279,19 @@ export function PolymerSimulator() {
                               Peso excessivo
                             </span>
                           )}
-                          {!isWeightExcessive && cheapest === opt.vehicleName && (
+                          {/* IMPROVED: amber badge for capacity warning per trip */}
+                          {!isWeightExcessive && opt.warning && (
+                            <span className="ml-2 text-xs bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200 px-2 py-0.5 rounded-full">
+                              {opt.warning}
+                            </span>
+                          )}
+                          {!isWeightExcessive && !opt.warning && cheapest === opt.vehicleName && (
                             <span className="ml-2 text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-2 py-0.5 rounded-full">
                               Mais económico
                             </span>
                           )}
                         </TableCell>
+                        {/* IMPROVED: renamed "Fretes" to "Deslocações" */}
                         <TableCell className="text-right">{isWeightExcessive ? "—" : opt.numFreights}</TableCell>
                         <TableCell className="text-right font-bold">{isWeightExcessive ? "—" : `${opt.totalCost.toFixed(2)} €`}</TableCell>
                         <TableCell className="text-right">{isWeightExcessive ? "—" : (opt.costPerTon?.toFixed(2) ?? "-")}</TableCell>

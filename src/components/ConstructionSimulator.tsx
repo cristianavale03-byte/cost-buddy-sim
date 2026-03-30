@@ -5,12 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Trash2, TrendingDown, Lock, AlertTriangle } from "lucide-react";
+import { Plus, Trash2, TrendingDown, Lock, AlertTriangle, Info } from "lucide-react";
 import { ccPrices, dimensionTypes, fleetVehicles, type CCPriceEntry } from "@/data/fleetData";
 import { calculateFleetCostByMeters, findCheapest, type FleetCostResult } from "@/utils/costCalculations";
 import { CostComparisonChart } from "./CostComparisonChart";
 import type { ConstructionLine } from "@/utils/costCalculations";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { usePombalenseExtraRate } from "@/hooks/usePombalenseExtraRate";
 
 // Only destinations from CC table
 const ccDestinations = ccPrices.map(p => p.destination).sort();
@@ -29,9 +30,8 @@ const dimensionToCCField: Record<string, keyof CCPriceEntry> = {
   "Chapas 7 a 8m": "chapas7a8",
 };
 
-// Vehicle capacity limits for feasibility checks
-const MAX_VEHICLE_LENGTH_METERS = 13.6; // trailer max
-const MAX_VEHICLE_WEIGHT_TON = 15; // largest fleet vehicle
+const MAX_VEHICLE_LENGTH_METERS = 13.6;
+const MAX_VEHICLE_WEIGHT_TON = 15;
 
 interface ConstructionResult {
   destination: string;
@@ -61,7 +61,8 @@ function calculateConstructionCost(
   lines: ConstructionLine[],
   totalKm: number,
   weightTon: number,
-  manualFreights: number = 1
+  manualFreights: number = 1,
+  extraRate: number = 0
 ): ConstructionResult | null {
   const entry = ccPrices.find(p =>
     p.destination.toLowerCase() === destination.toLowerCase() ||
@@ -71,7 +72,6 @@ function calculateConstructionCost(
 
   if (!entry) return null;
 
-  // Find the largest plate dimension
   let largestMeters = 0;
   let largestLabel = dimensionOrder[0].label;
 
@@ -84,7 +84,7 @@ function calculateConstructionCost(
     }
   }
 
-  const totalMeters = lines.reduce((sum, l) => sum + l.lengthMeters * l.numPlates, 0);
+  const totalMeters = largestMeters;
 
   // Feasibility check
   if (largestMeters > MAX_VEHICLE_LENGTH_METERS) {
@@ -105,11 +105,9 @@ function calculateConstructionCost(
     };
   }
 
-  // Get cost based on largest plate
   const ccField = dimensionToCCField[largestLabel];
-  const custoBase = ccField ? getCCEntryPrice(entry, ccField) : null;
+  let custoBase = ccField ? getCCEntryPrice(entry, ccField) : null;
 
-  // Excessive = chapas 7-8m
   const isExcessive = largestLabel === "Chapas 7 a 8m";
   const custo3Eixos = getCCEntryPrice(entry, "threeAxle");
   const custoReboque = getCCEntryPrice(entry, "trailer");
@@ -125,13 +123,22 @@ function calculateConstructionCost(
     effectiveCostPerFreight = 0;
   }
 
-  const numFreights = manualFreights;
+  // IMPROVED: apply extra rate to plate cost (not deliveries)
+  if (extraRate > 0) {
+    effectiveCostPerFreight = effectiveCostPerFreight * (1 + extraRate / 100);
+  }
 
+  const numFreights = manualFreights;
   const custoFinal = effectiveCostPerFreight * numFreights;
 
-  const fleetOptions = fleetVehicles.map(v =>
-    calculateFleetCostByMeters(v, totalKm, totalMeters)
-  );
+  // IMPROVED: apply manualFreights to fleet options and fix km (no *2)
+  const fleetOptions = fleetVehicles.map(v => {
+    const result = calculateFleetCostByMeters(v, totalKm, totalMeters);
+    result.numFreights = manualFreights;
+    result.totalCost = v.costPerKm * totalKm * manualFreights;
+    result.costPerKm2 = totalKm > 0 ? result.totalCost / totalKm : 0;
+    return result;
+  });
 
   return {
     destination,
@@ -159,10 +166,11 @@ export function ConstructionSimulator() {
   const [lines, setLines] = useState<ConstructionLine[]>([
     { id: crypto.randomUUID(), numPlates: 0, dimensionLabel: "Chapas 4 a 6m", lengthMeters: 6 },
   ]);
+  // IMPROVED: renamed visible label to "Deslocações"
   const [numFreightsManual, setNumFreightsManual] = useState<number>(1);
   const [results, setResults] = useState<ConstructionResult | null>(null);
+  const { rate: extraRate } = usePombalenseExtraRate();
 
-  // Total length = largest plate length (as per rules)
   const largestPlateMeters = Math.max(...lines.filter(l => l.numPlates > 0).map(l => l.lengthMeters), 0);
   const totalMeters = largestPlateMeters;
 
@@ -187,7 +195,7 @@ export function ConstructionSimulator() {
 
   const simulate = () => {
     if (!destination) return;
-    const result = calculateConstructionCost(destination, lines, totalKm, weightTon, numFreightsManual);
+    const result = calculateConstructionCost(destination, lines, totalKm, weightTon, numFreightsManual, extraRate);
     setResults(result);
   };
 
@@ -231,7 +239,8 @@ export function ConstructionSimulator() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Km Totais (ida)</Label>
+              {/* IMPROVED: label changed to ida + volta */}
+              <Label>Km Totais (ida + volta)</Label>
               <Input
                 type="number"
                 value={totalKm || ""}
@@ -250,7 +259,8 @@ export function ConstructionSimulator() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Nº de Fretes</Label>
+              {/* IMPROVED: renamed from "Fretes" to "Deslocações" */}
+              <Label>Nº de Deslocações</Label>
               <Input
                 type="number"
                 value={numFreightsManual || ""}
@@ -258,6 +268,10 @@ export function ConstructionSimulator() {
                 placeholder="1"
                 min={1}
               />
+              {/* IMPROVED: info note about extra delivery cost */}
+              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                <Info className="h-3 w-3" /> Cada deslocação extra é cobrada a 25 € pela Pombalense
+              </p>
             </div>
           </div>
         </CardContent>
@@ -370,7 +384,8 @@ export function ConstructionSimulator() {
                   <p className="font-semibold">{results.totalMeters.toFixed(1)} m</p>
                 </div>
                 <div className="p-3 bg-muted/50 rounded-md">
-                  <p className="text-xs text-muted-foreground">Nº de Fretes</p>
+                  {/* IMPROVED: renamed to "Deslocações" */}
+                  <p className="text-xs text-muted-foreground">Nº de Deslocações</p>
                   <p className="font-semibold">{results.numFreights}</p>
                 </div>
               </div>
@@ -401,13 +416,22 @@ export function ConstructionSimulator() {
                 )}
 
                 <div className="flex justify-between text-sm border-t pt-1">
-                  <span>Nº de Fretes</span>
+                  {/* IMPROVED: renamed to "Deslocações" */}
+                  <span>Nº de Deslocações</span>
                   <span className="font-medium">{results.numFreights}</span>
                 </div>
 
                 <div className="flex justify-between text-sm font-bold border-t pt-2 text-lg">
                   <span>Custo Total Final</span>
-                  <span>{results.custoFinal.toFixed(2)} €</span>
+                  <span>
+                    {results.custoFinal.toFixed(2)} €
+                    {/* IMPROVED: show extra rate badge */}
+                    {extraRate > 0 && (
+                      <span className="ml-2 text-xs font-normal bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200 px-2 py-0.5 rounded-full">
+                        +{extraRate}% aplicado
+                      </span>
+                    )}
+                  </span>
                 </div>
 
                 <div className="flex gap-6 text-xs text-muted-foreground pt-1">
@@ -427,7 +451,8 @@ export function ConstructionSimulator() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Opção</TableHead>
-                    <TableHead className="text-right">Nº Fretes</TableHead>
+                    {/* IMPROVED: renamed column */}
+                    <TableHead className="text-right">Nº Deslocações</TableHead>
                     <TableHead className="text-right">Custo Total (€)</TableHead>
                     <TableHead className="text-right">€/km</TableHead>
                   </TableRow>
