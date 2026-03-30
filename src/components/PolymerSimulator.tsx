@@ -218,25 +218,33 @@ export function PolymerSimulator() {
                     <TableCell className="text-right">{totalWeight > 0 ? (results.pombalense.totalCost / totalWeight).toFixed(2) : "-"}</TableCell>
                     <TableCell className="text-right">{totalKm > 0 ? (results.pombalense.totalCost / totalKm).toFixed(2) : "-"}</TableCell>
                   </TableRow>
-                  {results.fleetOptions.map((opt) => (
-                    <TableRow
-                      key={opt.vehicleName}
-                      className={cheapest === opt.vehicleName ? "bg-green-50 dark:bg-green-950/30" : ""}
-                    >
-                      <TableCell className="font-medium">
-                        {opt.vehicleName}
-                        {cheapest === opt.vehicleName && (
-                          <span className="ml-2 text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-2 py-0.5 rounded-full">
-                            Mais económico
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">{opt.numFreights}</TableCell>
-                      <TableCell className="text-right font-bold">{opt.totalCost.toFixed(2)} €</TableCell>
-                      <TableCell className="text-right">{opt.costPerTon?.toFixed(2) ?? "-"}</TableCell>
-                      <TableCell className="text-right">{opt.costPerKm2?.toFixed(2) ?? "-"}</TableCell>
-                    </TableRow>
-                  ))}
+                  {results.fleetOptions.map((opt) => {
+                    const isWeightExcessive = totalWeight > opt.capacityTon;
+                    return (
+                      <TableRow
+                        key={opt.vehicleName}
+                        className={isWeightExcessive ? "bg-destructive/10" : cheapest === opt.vehicleName ? "bg-green-50 dark:bg-green-950/30" : ""}
+                      >
+                        <TableCell className="font-medium">
+                          {opt.vehicleName}
+                          {isWeightExcessive && (
+                            <span className="ml-2 text-xs bg-destructive/20 text-destructive px-2 py-0.5 rounded-full">
+                              Peso excessivo
+                            </span>
+                          )}
+                          {!isWeightExcessive && cheapest === opt.vehicleName && (
+                            <span className="ml-2 text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-2 py-0.5 rounded-full">
+                              Mais económico
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">{isWeightExcessive ? "—" : opt.numFreights}</TableCell>
+                        <TableCell className="text-right font-bold">{isWeightExcessive ? "—" : `${opt.totalCost.toFixed(2)} €`}</TableCell>
+                        <TableCell className="text-right">{isWeightExcessive ? "—" : (opt.costPerTon?.toFixed(2) ?? "-")}</TableCell>
+                        <TableCell className="text-right">{isWeightExcessive ? "—" : (opt.costPerKm2?.toFixed(2) ?? "-")}</TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </CardContent>
