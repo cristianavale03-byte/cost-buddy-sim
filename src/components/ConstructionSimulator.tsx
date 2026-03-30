@@ -313,7 +313,7 @@ export function ConstructionSimulator() {
           </Table>
           <div className="mt-4 flex items-center justify-between">
             <p className="text-sm text-muted-foreground">
-              Comprimento Total: <span className="font-bold text-foreground">{totalMeters.toFixed(1)} m</span>
+              Comprimento Total (placa maior): <span className="font-bold text-foreground">{totalMeters.toFixed(1)} m</span>
             </p>
             <Button onClick={simulate} disabled={!destination}>
               Simular Custos
