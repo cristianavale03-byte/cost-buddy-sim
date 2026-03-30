@@ -162,7 +162,9 @@ export function ConstructionSimulator() {
   const [numFreightsManual, setNumFreightsManual] = useState<number>(1);
   const [results, setResults] = useState<ConstructionResult | null>(null);
 
-  const totalMeters = lines.reduce((sum, l) => sum + l.lengthMeters * l.numPlates, 0);
+  // Total length = largest plate length (as per rules)
+  const largestPlateMeters = Math.max(...lines.filter(l => l.numPlates > 0).map(l => l.lengthMeters), 0);
+  const totalMeters = largestPlateMeters;
 
   const addLine = () => {
     setLines([...lines, { id: crypto.randomUUID(), numPlates: 0, dimensionLabel: "Chapas 4 a 6m", lengthMeters: 6 }]);
