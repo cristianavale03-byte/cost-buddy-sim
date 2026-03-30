@@ -162,7 +162,9 @@ export function ConstructionSimulator() {
   const [numFreightsManual, setNumFreightsManual] = useState<number>(1);
   const [results, setResults] = useState<ConstructionResult | null>(null);
 
-  const totalMeters = lines.reduce((sum, l) => sum + l.lengthMeters * l.numPlates, 0);
+  // Total length = largest plate length (as per rules)
+  const largestPlateMeters = Math.max(...lines.filter(l => l.numPlates > 0).map(l => l.lengthMeters), 0);
+  const totalMeters = largestPlateMeters;
 
   const addLine = () => {
     setLines([...lines, { id: crypto.randomUUID(), numPlates: 0, dimensionLabel: "Chapas 4 a 6m", lengthMeters: 6 }]);
@@ -311,7 +313,7 @@ export function ConstructionSimulator() {
           </Table>
           <div className="mt-4 flex items-center justify-between">
             <p className="text-sm text-muted-foreground">
-              Comprimento Total: <span className="font-bold text-foreground">{totalMeters.toFixed(1)} m</span>
+              Comprimento Total (placa maior): <span className="font-bold text-foreground">{totalMeters.toFixed(1)} m</span>
             </p>
             <Button onClick={simulate} disabled={!destination}>
               Simular Custos
@@ -444,24 +446,32 @@ export function ConstructionSimulator() {
                     <TableCell className="text-right font-bold">{results.custoFinal.toFixed(2)} €</TableCell>
                     <TableCell className="text-right">{results.custoKm !== null ? results.custoKm.toFixed(2) : "—"}</TableCell>
                   </TableRow>
-                  {results.fleetOptions.map(opt => (
-                    <TableRow
-                      key={opt.vehicleName}
-                      className={cheapest === opt.vehicleName ? "bg-green-50 dark:bg-green-950/30" : ""}
-                    >
-                      <TableCell className="font-medium">
-                        {opt.vehicleName}
-                        {cheapest === opt.vehicleName && (
-                          <span className="ml-2 text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-2 py-0.5 rounded-full">
-                            Mais económico
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">{opt.numFreights}</TableCell>
-                      <TableCell className="text-right font-bold">{opt.totalCost.toFixed(2)} €</TableCell>
-                      <TableCell className="text-right">{opt.costPerKm2?.toFixed(2) ?? "—"}</TableCell>
-                    </TableRow>
-                  ))}
+                  {results.fleetOptions.map(opt => {
+                    const isWeightExcessive = weightTon > opt.capacityTon;
+                    return (
+                      <TableRow
+                        key={opt.vehicleName}
+                        className={isWeightExcessive ? "bg-destructive/10" : cheapest === opt.vehicleName ? "bg-green-50 dark:bg-green-950/30" : ""}
+                      >
+                        <TableCell className="font-medium">
+                          {opt.vehicleName}
+                          {isWeightExcessive && (
+                            <span className="ml-2 text-xs bg-destructive/20 text-destructive px-2 py-0.5 rounded-full">
+                              Peso excessivo
+                            </span>
+                          )}
+                          {!isWeightExcessive && cheapest === opt.vehicleName && (
+                            <span className="ml-2 text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-2 py-0.5 rounded-full">
+                              Mais económico
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">{isWeightExcessive ? "—" : opt.numFreights}</TableCell>
+                        <TableCell className="text-right font-bold">{isWeightExcessive ? "—" : `${opt.totalCost.toFixed(2)} €`}</TableCell>
+                        <TableCell className="text-right">{isWeightExcessive ? "—" : (opt.costPerKm2?.toFixed(2) ?? "—")}</TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </CardContent>
