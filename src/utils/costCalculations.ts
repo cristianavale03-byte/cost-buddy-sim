@@ -30,6 +30,8 @@ export interface FleetCostResult {
   totalCost: number;
   costPerTon?: number;
   costPerKm2?: number;
+  // IMPROVED: warning for capacity exceeded per trip
+  warning?: string;
 }
 
 export interface PombalenseCostResult {
@@ -40,7 +42,7 @@ export interface PombalenseCostResult {
   zoneName?: string;
 }
 
-// Find the best matching CF zone for an origin + destination
+// IMPROVED: removed fallback — returns null if no zone found
 export function findCFZone(originName: string, destinationName: string): CFZone | null {
   const originId = originName.includes("Gulpilhares") || originName.includes("Espinho") ? 1
     : originName.includes("Meirinhas") ? 2
@@ -66,12 +68,14 @@ export function findCFZone(originName: string, destinationName: string): CFZone 
     }
   }
 
-  // Fallback: return most common zone for this origin
-  return zones.length > 0 ? zones[zones.length - 1] : null;
+  // IMPROVED: no fallback — return null if no match
+  return null;
 }
 
-// Get CF weight cost from a specific zone
+// IMPROVED: weight zero protection
 export function getCFWeightCost(zone: CFZone, weightKg: number): number {
+  if (weightKg <= 0) return 0;
+  
   const sorted = [...zone.prices].sort((a, b) => a.kgUpTo - b.kgUpTo);
   
   for (const entry of sorted) {
@@ -80,13 +84,11 @@ export function getCFWeightCost(zone: CFZone, weightKg: number): number {
     }
   }
 
-  // Beyond table: check if beyondTenTonPerTon exists
   if (zone.beyondTenTonPerTon && weightKg > 10000) {
     const tons = weightKg / 1000;
     return zone.beyondTenTonPerTon * tons;
   }
 
-  // Check full load prices
   if (zone.fullLoadPrices) {
     return zone.fullLoadPrices.threeAxle ?? zone.fullLoadPrices.trailer ?? sorted[sorted.length - 1]?.cost ?? 0;
   }
@@ -94,7 +96,6 @@ export function getCFWeightCost(zone: CFZone, weightKg: number): number {
   return sorted[sorted.length - 1]?.cost ?? 0;
 }
 
-// Get CC construction price for a destination and plate type
 export function getCCPrice(destinationName: string, ccField: keyof CCPriceEntry): number | null {
   const entry = ccPrices.find(p => 
     p.destination.toLowerCase() === destinationName.toLowerCase() ||
@@ -106,20 +107,19 @@ export function getCCPrice(destinationName: string, ccField: keyof CCPriceEntry)
   return typeof val === "number" ? val : null;
 }
 
-// Calculate number of freights needed
 export function calculateFreights(totalWeight: number, capacity: number): number {
   if (capacity <= 0) return 0;
   return Math.ceil(totalWeight / capacity);
 }
 
-// Calculate own fleet cost for a given vehicle
+// IMPROVED: removed *2 from roundTripKm — user inputs total distance
 export function calculateFleetCost(
   vehicle: FleetVehicle,
   totalKm: number,
   totalWeightTon: number
 ): FleetCostResult {
   const numFreights = calculateFreights(totalWeightTon, vehicle.capacityTon);
-  const roundTripKm = totalKm * 2;
+  const roundTripKm = totalKm;
   const totalCost = vehicle.costPerKm * roundTripKm * numFreights;
 
   return {
@@ -134,18 +134,22 @@ export function calculateFleetCost(
   };
 }
 
-// Calculate Pombalense cost using CF zone lookup
+// IMPROVED: weight zero protection
 export function calculatePombalenseCost(
   totalWeightTon: number,
   originName: string,
   destinationName: string,
   numDeliveries: number = 1
 ): PombalenseCostResult {
+  if (totalWeightTon <= 0) {
+    return { weightCost: 0, deliveryCost: 0, totalCost: 0, numFreights: 1, zoneName: undefined };
+  }
+
   const zone = findCFZone(originName, destinationName);
   const weightKg = totalWeightTon * 1000;
   
   let weightCost = 0;
-  let zoneName = "Zona genérica";
+  let zoneName: string | undefined = undefined;
   
   if (zone) {
     weightCost = getCFWeightCost(zone, weightKg);
@@ -163,7 +167,7 @@ export function calculatePombalenseCost(
   };
 }
 
-// Calculate all options for polymers
+// IMPROVED: added capacity warning per trip, removed *2 from km
 export function calculateAllPolymerOptions(
   totalWeightTon: number,
   totalKm: number,
@@ -173,30 +177,36 @@ export function calculateAllPolymerOptions(
   manualFreights: number = 1
 ) {
   const pombalense = calculatePombalenseCost(totalWeightTon, originName, destinationName, numDeliveries);
-  // Apply manual freights to pombalense
   pombalense.numFreights = manualFreights;
   pombalense.totalCost = (pombalense.weightCost + pombalense.deliveryCost) * manualFreights;
   
   const fleetOptions = fleetVehicles.map((v) => {
     const result = calculateFleetCost(v, totalKm, totalWeightTon);
+    // IMPROVED: check weight per trip vs capacity
+    const weightPerTrip = totalWeightTon / manualFreights;
+    let warning: string | undefined;
+    if (weightPerTrip > v.capacityTon) {
+      warning = "Carga por deslocação excede capacidade deste veículo";
+    }
     result.numFreights = manualFreights;
-    result.totalCost = v.costPerKm * (totalKm * 2) * manualFreights;
+    result.totalCost = v.costPerKm * totalKm * manualFreights;
     result.costPerTon = totalWeightTon > 0 ? result.totalCost / totalWeightTon : 0;
     result.costPerKm2 = totalKm > 0 ? result.totalCost / totalKm : 0;
+    result.warning = warning;
     return result;
   });
 
   return { pombalense, fleetOptions };
 }
 
-// Calculate fleet cost for construction (by meters)
+// IMPROVED: removed *2 from roundTripKm
 export function calculateFleetCostByMeters(
   vehicle: FleetVehicle,
   totalKm: number,
   totalMeters: number
 ): FleetCostResult {
   const numFreights = calculateFreights(totalMeters, vehicle.capacityMeters);
-  const roundTripKm = totalKm * 2;
+  const roundTripKm = totalKm;
   const totalCost = vehicle.costPerKm * roundTripKm * numFreights;
 
   return {
@@ -210,7 +220,6 @@ export function calculateFleetCostByMeters(
   };
 }
 
-// Calculate construction Pombalense cost using CC table
 export interface ConstructionPombalenseResult {
   prices: { label: string; cost: number | null }[];
   totalCost: number;
@@ -240,7 +249,7 @@ export function calculateConstructionPombalense(
     const unitCost = getCCPrice(destinationName, ccField);
     prices.push({ label: `${line.numPlates}x ${line.dimensionLabel}`, cost: unitCost });
     if (unitCost !== null) {
-      totalCost += unitCost; // CC prices are per full load
+      totalCost += unitCost;
     }
   }
 
@@ -254,7 +263,6 @@ export function calculateConstructionPombalense(
   };
 }
 
-// Find cheapest option
 export function findCheapest(
   pombalenseTotal: number,
   fleetOptions: FleetCostResult[]

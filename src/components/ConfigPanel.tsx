@@ -2,15 +2,45 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Info } from "lucide-react";
 import { fleetVehicles, cfZones, ccPrices, dimensionTypes, deliveryCostPerEntry, transferCosts } from "@/data/fleetData";
+import { usePombalenseExtraRate } from "@/hooks/usePombalenseExtraRate";
 
 export function ConfigPanel() {
   const [selectedOrigin, setSelectedOrigin] = useState("1");
+  const { rate: extraRate, setRate: setExtraRate } = usePombalenseExtraRate();
 
   const filteredZones = cfZones.filter(z => z.originId === Number(selectedOrigin));
 
   return (
     <div className="space-y-6">
+      {/* IMPROVED: Pombalense extra rate config */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Taxa Extra Pombalense</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <div className="flex items-center gap-3">
+            <Label htmlFor="extra-rate" className="whitespace-nowrap">Taxa extra Pombalense (%)</Label>
+            <Input
+              id="extra-rate"
+              type="number"
+              value={extraRate || ""}
+              onChange={e => setExtraRate(Math.max(0, Number(e.target.value)))}
+              placeholder="0"
+              className="w-24"
+              min={0}
+              step={0.5}
+            />
+          </div>
+          <p className="text-xs text-muted-foreground flex items-center gap-1">
+            <Info className="h-3 w-3" /> Aplica-se aos custos de peso e chapas. As deslocações extras (25 €/deslocação) não são afetadas.
+          </p>
+        </CardContent>
+      </Card>
+
       {/* Fleet costs */}
       <Card>
         <CardHeader>
@@ -108,7 +138,7 @@ export function ConfigPanel() {
         </CardContent>
       </Card>
 
-      {/* CC Construction prices (sample) */}
+      {/* CC Construction prices */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Tabela CC Pombalense (Cargas Completas — Construção)</CardTitle>
@@ -172,7 +202,7 @@ export function ConfigPanel() {
         </CardContent>
       </Card>
 
-      {/* Transfer costs + other params */}
+      {/* Transfer costs */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Custos de Transferência Interna</CardTitle>
@@ -198,7 +228,8 @@ export function ConfigPanel() {
           </Table>
           <div className="mt-4 space-y-2 text-sm">
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Custo por entrega interna (cliente excedente)</span>
+              {/* IMPROVED: renamed to "deslocação" */}
+              <span className="text-muted-foreground">Custo por deslocação interna (cliente excedente)</span>
               <span className="font-medium">{deliveryCostPerEntry} €</span>
             </div>
           </div>
