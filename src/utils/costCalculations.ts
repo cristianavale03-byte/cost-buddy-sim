@@ -21,13 +21,15 @@ export interface ConstructionLine {
   lengthMeters: number;
 }
 
-// IMPROVED: added heavyLoadComparison fields
+// IMPROVED: added custoBaseEfetivo and optionUsed to determine which option was applied
 export interface HeavyLoadComparison {
   custoCFIncremental: number;
   custoThreeAxle: number | null;
   custoTrailer: number | null;
   suggestThreeAxle: boolean;
   suggestTrailer: boolean;
+  custoBaseEfetivo: number;
+  optionUsed: "CF" | "3Eixos" | "Reboque";
 }
 
 export interface FleetCostResult {
