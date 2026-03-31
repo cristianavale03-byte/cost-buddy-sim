@@ -189,22 +189,13 @@ export function calculateAllPolymerOptions(
   manualFreights: number = 1
 ) {
   const pombalense = calculatePombalenseCost(totalWeightTon, originName, destinationName, numDeliveries);
-  pombalense.numFreights = manualFreights;
-  pombalense.totalCost = (pombalense.weightCost + pombalense.deliveryCost) * manualFreights;
+  // IMPROVED: deslocações only multiply the 25€ delivery cost, not the weight cost
+  pombalense.numFreights = numDeliveries;
+  pombalense.totalCost = pombalense.weightCost + pombalense.deliveryCost;
   
+  // IMPROVED: fleet options use automatic freight calculation, not affected by manual deslocações
   const fleetOptions = fleetVehicles.map((v) => {
     const result = calculateFleetCost(v, totalKm, totalWeightTon);
-    // IMPROVED: check weight per trip vs capacity
-    const weightPerTrip = totalWeightTon / manualFreights;
-    let warning: string | undefined;
-    if (weightPerTrip > v.capacityTon) {
-      warning = "Carga por deslocação excede capacidade deste veículo";
-    }
-    result.numFreights = manualFreights;
-    result.totalCost = v.costPerKm * totalKm * manualFreights;
-    result.costPerTon = totalWeightTon > 0 ? result.totalCost / totalWeightTon : 0;
-    result.costPerKm2 = totalKm > 0 ? result.totalCost / totalKm : 0;
-    result.warning = warning;
     return result;
   });
 
@@ -254,7 +245,7 @@ export function calculateAllPolymerOptions(
     
     // IMPROVED: apply custoBaseEfetivo to pombalense totalCost
     pombalense.weightCost = custoBaseEfetivo;
-    pombalense.totalCost = (custoBaseEfetivo + pombalense.deliveryCost) * manualFreights;
+    pombalense.totalCost = custoBaseEfetivo + pombalense.deliveryCost;
   }
 
   return { pombalense, fleetOptions, heavyLoadComparison };

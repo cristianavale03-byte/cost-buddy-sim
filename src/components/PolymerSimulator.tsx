@@ -62,13 +62,13 @@ export function PolymerSimulator() {
 
   const simulate = () => {
     if (totalKm <= 0 || totalWeight <= 0) return;
-    // IMPROVED: numDeliveries = numFreightsManual (min 0)
-    const result = calculateAllPolymerOptions(totalWeight, totalKm, origin, destination, numFreightsManual, Math.max(1, numFreightsManual));
+    // IMPROVED: deslocações only affect Pombalense delivery cost (25€ each), not fleet
+    const result = calculateAllPolymerOptions(totalWeight, totalKm, origin, destination, numFreightsManual);
     
-    // IMPROVED: apply extra rate to weightCost before summing
+    // IMPROVED: apply extra rate to weightCost only, not deliveryCost
     if (extraRate > 0) {
       result.pombalense.weightCost = result.pombalense.weightCost * (1 + extraRate / 100);
-      result.pombalense.totalCost = (result.pombalense.weightCost + result.pombalense.deliveryCost) * Math.max(1, numFreightsManual);
+      result.pombalense.totalCost = result.pombalense.weightCost + result.pombalense.deliveryCost;
     }
     
     setResults(result);
