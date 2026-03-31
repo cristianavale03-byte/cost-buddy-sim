@@ -358,53 +358,7 @@ export function PolymerSimulator() {
             </CardContent>
           </Card>
 
-          {/* IMPROVED: heavy load comparison block for >10 ton */}
-          {results.heavyLoadComparison && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">⚖️ Análise de Carga Completa</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex justify-between text-sm">
-                  <span>Custo CF incremental (além 10 ton)</span>
-                  <span className="font-medium">{results.heavyLoadComparison.custoCFIncremental.toFixed(2)} €</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span>Custo 3 Eixos (tabela CC, mesmo destino)</span>
-                  <span className="font-medium">
-                    {results.heavyLoadComparison.custoThreeAxle !== null
-                      ? `${results.heavyLoadComparison.custoThreeAxle.toFixed(2)} €`
-                      : "Não disponível para este destino"}
-                  </span>
-                </div>
-                {results.heavyLoadComparison.suggestThreeAxle && (
-                  <span className="inline-block text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-2 py-0.5 rounded-full">
-                    ✅ 3 Eixos mais económico
-                  </span>
-                )}
-                {totalWeight > 15 && (
-                  <div className="flex justify-between text-sm">
-                    <span>Custo Reboque</span>
-                    <span className="font-medium">
-                      {results.heavyLoadComparison.custoTrailer !== null
-                        ? `${results.heavyLoadComparison.custoTrailer.toFixed(2)} €`
-                        : "Não disponível"}
-                    </span>
-                  </div>
-                )}
-                {results.heavyLoadComparison.suggestTrailer && (
-                  <span className="inline-block text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-2 py-0.5 rounded-full">
-                    ✅ Reboque mais económico
-                  </span>
-                )}
-                {!results.heavyLoadComparison.suggestThreeAxle && !results.heavyLoadComparison.suggestTrailer && (
-                  <p className="text-xs text-muted-foreground italic">
-                    CF continua a ser a opção mais económica para este volume
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-          )}
+
 
           <CostComparisonChart data={chartData} title="Comparação de Custos — Polímeros/Equipamentos" />
         </>
