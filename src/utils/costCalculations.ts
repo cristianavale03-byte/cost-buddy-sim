@@ -208,7 +208,7 @@ export function calculateAllPolymerOptions(
     return result;
   });
 
-  // IMPROVED: heavy load comparison for >10 ton (only when origin is NOT Meirinhas)
+  // IMPROVED: heavy load comparison with custoBaseEfetivo — picks cheapest option and applies to pombalense totalCost
   let heavyLoadComparison: HeavyLoadComparison | null = null;
   const isMeirinhas = originName.includes("Meirinhas");
   
@@ -222,14 +222,23 @@ export function calculateAllPolymerOptions(
     let suggestThreeAxle = false;
     let suggestTrailer = false;
     
-    if (custoThreeAxle !== null && custoThreeAxle < custoCFIncremental) {
+    // IMPROVED: determine custoBaseEfetivo as the cheapest available option
+    let custoBaseEfetivo = custoCFIncremental;
+    let optionUsed: "CF" | "3Eixos" | "Reboque" = "CF";
+    
+    if (custoThreeAxle !== null && custoThreeAxle < custoBaseEfetivo) {
+      custoBaseEfetivo = custoThreeAxle;
+      optionUsed = "3Eixos";
       suggestThreeAxle = true;
     }
     
     if (totalWeightTon > 15) {
       custoTrailer = getCCPrice(destinationName, "trailer");
-      if (custoTrailer !== null && custoTrailer < custoCFIncremental) {
+      if (custoTrailer !== null && custoTrailer < custoBaseEfetivo) {
+        custoBaseEfetivo = custoTrailer;
+        optionUsed = "Reboque";
         suggestTrailer = true;
+        suggestThreeAxle = false;
       }
     }
     
@@ -239,7 +248,13 @@ export function calculateAllPolymerOptions(
       custoTrailer,
       suggestThreeAxle,
       suggestTrailer,
+      custoBaseEfetivo,
+      optionUsed,
     };
+    
+    // IMPROVED: apply custoBaseEfetivo to pombalense totalCost
+    pombalense.weightCost = custoBaseEfetivo;
+    pombalense.totalCost = (custoBaseEfetivo + pombalense.deliveryCost) * manualFreights;
   }
 
   return { pombalense, fleetOptions, heavyLoadComparison };
