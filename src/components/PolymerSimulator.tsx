@@ -261,55 +261,69 @@ export function PolymerSimulator() {
                           </span>
                         )}
                       </div>
-                      {/* IMPROVED: cost breakdown detail */}
+                      {/* IMPROVED: dynamic cost breakdown based on optionUsed */}
                       {zoneFound && (
                         <div className="mt-1">
-                          <p className="text-xs text-muted-foreground">Custo por peso: {results.pombalense.weightCost.toFixed(2)} €</p>
+                          {results.heavyLoadComparison ? (
+                            <p className="text-xs text-muted-foreground">
+                              {results.heavyLoadComparison.optionUsed === "CF" && `Custo CF (além 10 ton): ${results.pombalense.weightCost.toFixed(2)} €`}
+                              {results.heavyLoadComparison.optionUsed === "3Eixos" && `Custo 3 Eixos (carga completa): ${results.pombalense.weightCost.toFixed(2)} €`}
+                              {results.heavyLoadComparison.optionUsed === "Reboque" && `Custo Reboque (carga completa): ${results.pombalense.weightCost.toFixed(2)} €`}
+                            </p>
+                          ) : (
+                            <p className="text-xs text-muted-foreground">Custo por peso: {results.pombalense.weightCost.toFixed(2)} €</p>
+                          )}
                           {results.pombalense.deliveryCost > 0 && (
                             <p className="text-xs text-muted-foreground">Custo deslocações: {results.pombalense.deliveryCost.toFixed(2)} €</p>
                           )}
                         </div>
                       )}
-                      {/* IMPROVED: heavy load analysis moved inside Pombalense row */}
+                      {/* IMPROVED: heavy load analysis with single badge on applied option */}
                       {results.heavyLoadComparison && (
                         <div className="mt-3 pt-3 border-t border-border space-y-2">
                           <p className="text-xs font-semibold">⚖️ Análise de Carga Completa</p>
                           <div className="flex justify-between text-xs text-muted-foreground">
-                            <span>Custo CF incremental (além 10 ton)</span>
+                            <span>
+                              Custo CF incremental (além 10 ton)
+                              {results.heavyLoadComparison.optionUsed === "CF" && (
+                                <span className="ml-2 inline-block text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-2 py-0.5 rounded-full">
+                                  ✅ Opção mais económica — aplicada ao custo total
+                                </span>
+                              )}
+                            </span>
                             <span className="font-medium text-foreground">{results.heavyLoadComparison.custoCFIncremental.toFixed(2)} €</span>
                           </div>
                           <div className="flex justify-between text-xs text-muted-foreground">
-                            <span>Custo 3 Eixos (tabela CC)</span>
+                            <span>
+                              Custo 3 Eixos (tabela CC)
+                              {results.heavyLoadComparison.optionUsed === "3Eixos" && (
+                                <span className="ml-2 inline-block text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-2 py-0.5 rounded-full">
+                                  ✅ Opção mais económica — aplicada ao custo total
+                                </span>
+                              )}
+                            </span>
                             <span className="font-medium text-foreground">
                               {results.heavyLoadComparison.custoThreeAxle !== null
                                 ? `${results.heavyLoadComparison.custoThreeAxle.toFixed(2)} €`
                                 : "Não disponível"}
                             </span>
                           </div>
-                          {results.heavyLoadComparison.suggestThreeAxle && (
-                            <span className="inline-block text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-2 py-0.5 rounded-full">
-                              ✅ 3 Eixos mais económico
-                            </span>
-                          )}
                           {totalWeight > 15 && (
                             <div className="flex justify-between text-xs text-muted-foreground">
-                              <span>Custo Reboque</span>
+                              <span>
+                                Custo Reboque
+                                {results.heavyLoadComparison.optionUsed === "Reboque" && (
+                                  <span className="ml-2 inline-block text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-2 py-0.5 rounded-full">
+                                    ✅ Opção mais económica — aplicada ao custo total
+                                  </span>
+                                )}
+                              </span>
                               <span className="font-medium text-foreground">
                                 {results.heavyLoadComparison.custoTrailer !== null
                                   ? `${results.heavyLoadComparison.custoTrailer.toFixed(2)} €`
                                   : "Não disponível"}
                               </span>
                             </div>
-                          )}
-                          {results.heavyLoadComparison.suggestTrailer && (
-                            <span className="inline-block text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-2 py-0.5 rounded-full">
-                              ✅ Reboque mais económico
-                            </span>
-                          )}
-                          {!results.heavyLoadComparison.suggestThreeAxle && !results.heavyLoadComparison.suggestTrailer && (
-                            <p className="text-xs text-muted-foreground italic">
-                              CF continua a ser a opção mais económica para este volume
-                            </p>
                           )}
                         </div>
                       )}
