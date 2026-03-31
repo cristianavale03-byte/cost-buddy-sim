@@ -245,7 +245,7 @@ export function calculateAllPolymerOptions(
     
     // IMPROVED: apply custoBaseEfetivo to pombalense totalCost
     pombalense.weightCost = custoBaseEfetivo;
-    pombalense.totalCost = (custoBaseEfetivo + pombalense.deliveryCost) * manualFreights;
+    pombalense.totalCost = custoBaseEfetivo + pombalense.deliveryCost;
   }
 
   return { pombalense, fleetOptions, heavyLoadComparison };
