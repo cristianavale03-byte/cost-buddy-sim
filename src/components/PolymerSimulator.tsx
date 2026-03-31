@@ -235,7 +235,7 @@ export function PolymerSimulator() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Opção</TableHead>
+                    <TableHead className="w-[45%]">Opção</TableHead>
                     {/* IMPROVED: renamed column header */}
                     <TableHead className="text-right">Nº Deslocações</TableHead>
                     <TableHead className="text-right">Custo Total (€)</TableHead>
