@@ -131,7 +131,7 @@ function calculateConstructionCost(
   const numFreights = manualFreights;
   const custoFinal = effectiveCostPerFreight * numFreights;
 
-  // IMPROVED: apply manualFreights to fleet options and fix km (no *2)
+  // IMPROVED: apply manualFreights to fleet options, recalculate totalCost = costPerKm * totalKm * manualFreights
   const fleetOptions = fleetVehicles.map(v => {
     const result = calculateFleetCostByMeters(v, totalKm, totalMeters);
     result.numFreights = manualFreights;
@@ -166,8 +166,8 @@ export function ConstructionSimulator() {
   const [lines, setLines] = useState<ConstructionLine[]>([
     { id: crypto.randomUUID(), numPlates: 0, dimensionLabel: "Chapas 4 a 6m", lengthMeters: 6 },
   ]);
-  // IMPROVED: renamed visible label to "Deslocações"
-  const [numFreightsManual, setNumFreightsManual] = useState<number>(1);
+  // IMPROVED: default deslocações = 0
+  const [numFreightsManual, setNumFreightsManual] = useState<number>(0);
   const [results, setResults] = useState<ConstructionResult | null>(null);
   const { rate: extraRate } = usePombalenseExtraRate();
 
@@ -195,7 +195,7 @@ export function ConstructionSimulator() {
 
   const simulate = () => {
     if (!destination) return;
-    const result = calculateConstructionCost(destination, lines, totalKm, weightTon, numFreightsManual, extraRate);
+    const result = calculateConstructionCost(destination, lines, totalKm, weightTon, Math.max(1, numFreightsManual), extraRate);
     setResults(result);
   };
 
@@ -259,18 +259,18 @@ export function ConstructionSimulator() {
               />
             </div>
             <div className="space-y-2">
-              {/* IMPROVED: renamed from "Fretes" to "Deslocações" */}
+              {/* IMPROVED: renamed from "Fretes" to "Deslocações", default 0 */}
               <Label>Nº de Deslocações</Label>
               <Input
                 type="number"
-                value={numFreightsManual || ""}
-                onChange={e => setNumFreightsManual(Math.max(1, Number(e.target.value)))}
-                placeholder="1"
-                min={1}
+                value={numFreightsManual}
+                onChange={e => setNumFreightsManual(Math.max(0, Number(e.target.value)))}
+                placeholder="0"
+                min={0}
               />
               {/* IMPROVED: info note about extra delivery cost */}
               <p className="text-xs text-muted-foreground flex items-center gap-1">
-                <Info className="h-3 w-3" /> Cada deslocação extra é cobrada a 25 € pela Pombalense
+                <Info className="h-3 w-3" /> Cada deslocação é cobrada a 25 € pela Pombalense
               </p>
             </div>
           </div>

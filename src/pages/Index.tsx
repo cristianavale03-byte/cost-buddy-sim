@@ -1,3 +1,5 @@
+// IMPROVED: controlled Tabs state to preserve active tab across re-renders
+import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PolymerSimulator } from "@/components/PolymerSimulator";
 import { ConstructionSimulator } from "@/components/ConstructionSimulator";
@@ -5,6 +7,9 @@ import { ConfigPanel } from "@/components/ConfigPanel";
 import { Truck, Package, Building2, Settings } from "lucide-react";
 
 const Index = () => {
+  // IMPROVED: controlled state preserves active tab when navigating
+  const [activeTab, setActiveTab] = useState("polymers");
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -24,7 +29,7 @@ const Index = () => {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-6">
-        <Tabs defaultValue="polymers" className="space-y-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="grid w-full grid-cols-3 max-w-lg">
             <TabsTrigger value="polymers" className="flex items-center gap-2">
               <Package className="h-4 w-4" />

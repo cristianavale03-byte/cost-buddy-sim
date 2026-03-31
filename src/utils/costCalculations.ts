@@ -21,6 +21,15 @@ export interface ConstructionLine {
   lengthMeters: number;
 }
 
+// IMPROVED: added heavyLoadComparison fields
+export interface HeavyLoadComparison {
+  custoCFIncremental: number;
+  custoThreeAxle: number | null;
+  custoTrailer: number | null;
+  suggestThreeAxle: boolean;
+  suggestTrailer: boolean;
+}
+
 export interface FleetCostResult {
   vehicleName: string;
   costPerKm: number;
@@ -134,12 +143,12 @@ export function calculateFleetCost(
   };
 }
 
-// IMPROVED: weight zero protection
+// IMPROVED: delivery cost = numDeliveries * 25€ (min 0), weight zero protection
 export function calculatePombalenseCost(
   totalWeightTon: number,
   originName: string,
   destinationName: string,
-  numDeliveries: number = 1
+  numDeliveries: number = 0
 ): PombalenseCostResult {
   if (totalWeightTon <= 0) {
     return { weightCost: 0, deliveryCost: 0, totalCost: 0, numFreights: 1, zoneName: undefined };
@@ -156,7 +165,8 @@ export function calculatePombalenseCost(
     zoneName = zone.zoneName;
   }
   
-  const deliveryCost = numDeliveries > 1 ? (numDeliveries - 1) * deliveryCostPerEntry : 0;
+  // IMPROVED: delivery cost = numDeliveries * 25€ (no "minus 1" logic)
+  const deliveryCost = numDeliveries > 0 ? numDeliveries * deliveryCostPerEntry : 0;
 
   return {
     weightCost,
@@ -167,13 +177,13 @@ export function calculatePombalenseCost(
   };
 }
 
-// IMPROVED: added capacity warning per trip, removed *2 from km
+// IMPROVED: added capacity warning per trip, heavy load comparison for >10 ton
 export function calculateAllPolymerOptions(
   totalWeightTon: number,
   totalKm: number,
   originName: string = "",
   destinationName: string = "",
-  numDeliveries: number = 1,
+  numDeliveries: number = 0,
   manualFreights: number = 1
 ) {
   const pombalense = calculatePombalenseCost(totalWeightTon, originName, destinationName, numDeliveries);
@@ -196,7 +206,41 @@ export function calculateAllPolymerOptions(
     return result;
   });
 
-  return { pombalense, fleetOptions };
+  // IMPROVED: heavy load comparison for >10 ton (only when origin is NOT Meirinhas)
+  let heavyLoadComparison: HeavyLoadComparison | null = null;
+  const isMeirinhas = originName.includes("Meirinhas");
+  
+  if (totalWeightTon > 10 && !isMeirinhas) {
+    const zone = findCFZone(originName, destinationName);
+    const beyondRate = zone?.beyondTenTonPerTon ?? 0;
+    const custoCFIncremental = totalWeightTon * beyondRate;
+    
+    const custoThreeAxle = getCCPrice(destinationName, "threeAxle");
+    let custoTrailer: number | null = null;
+    let suggestThreeAxle = false;
+    let suggestTrailer = false;
+    
+    if (custoThreeAxle !== null && custoThreeAxle < custoCFIncremental) {
+      suggestThreeAxle = true;
+    }
+    
+    if (totalWeightTon > 15) {
+      custoTrailer = getCCPrice(destinationName, "trailer");
+      if (custoTrailer !== null && custoTrailer < custoCFIncremental) {
+        suggestTrailer = true;
+      }
+    }
+    
+    heavyLoadComparison = {
+      custoCFIncremental,
+      custoThreeAxle,
+      custoTrailer,
+      suggestThreeAxle,
+      suggestTrailer,
+    };
+  }
+
+  return { pombalense, fleetOptions, heavyLoadComparison };
 }
 
 // IMPROVED: removed *2 from roundTripKm

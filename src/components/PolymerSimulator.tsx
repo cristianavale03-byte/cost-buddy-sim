@@ -20,8 +20,8 @@ export function PolymerSimulator() {
   const [origin, setOrigin] = useState("");
   const [destination, setDestination] = useState("");
   const [totalKm, setTotalKm] = useState<number>(0);
-  // IMPROVED: renamed visible label to "Deslocações"
-  const [numFreightsManual, setNumFreightsManual] = useState<number>(1);
+  // IMPROVED: default deslocações = 0
+  const [numFreightsManual, setNumFreightsManual] = useState<number>(0);
   const [cargoLines, setCargoLines] = useState<CargoLine[]>([
     { id: crypto.randomUUID(), client: "", weightTon: 0 },
   ]);
@@ -62,13 +62,13 @@ export function PolymerSimulator() {
 
   const simulate = () => {
     if (totalKm <= 0 || totalWeight <= 0) return;
-    const numDeliveries = cargoLines.filter(l => l.client && l.weightTon > 0).length;
-    const result = calculateAllPolymerOptions(totalWeight, totalKm, origin, destination, numDeliveries, numFreightsManual);
+    // IMPROVED: numDeliveries = numFreightsManual (min 0)
+    const result = calculateAllPolymerOptions(totalWeight, totalKm, origin, destination, numFreightsManual, Math.max(1, numFreightsManual));
     
     // IMPROVED: apply extra rate to weightCost before summing
     if (extraRate > 0) {
       result.pombalense.weightCost = result.pombalense.weightCost * (1 + extraRate / 100);
-      result.pombalense.totalCost = (result.pombalense.weightCost + result.pombalense.deliveryCost) * numFreightsManual;
+      result.pombalense.totalCost = (result.pombalense.weightCost + result.pombalense.deliveryCost) * Math.max(1, numFreightsManual);
     }
     
     setResults(result);
@@ -137,18 +137,18 @@ export function PolymerSimulator() {
               />
             </div>
             <div className="space-y-2">
-              {/* IMPROVED: renamed from "Fretes" to "Deslocações" */}
+              {/* IMPROVED: renamed from "Fretes" to "Deslocações", default 0 */}
               <Label>Nº de Deslocações</Label>
               <Input
                 type="number"
-                value={numFreightsManual || ""}
-                onChange={(e) => setNumFreightsManual(Math.max(1, Number(e.target.value)))}
-                placeholder="1"
-                min={1}
+                value={numFreightsManual}
+                onChange={(e) => setNumFreightsManual(Math.max(0, Number(e.target.value)))}
+                placeholder="0"
+                min={0}
               />
               {/* IMPROVED: info note about extra delivery cost */}
               <p className="text-xs text-muted-foreground flex items-center gap-1">
-                <Info className="h-3 w-3" /> Cada deslocação extra é cobrada a 25 € pela Pombalense
+                <Info className="h-3 w-3" /> Cada deslocação é cobrada a 25 € pela Pombalense
               </p>
             </div>
           </div>
@@ -244,20 +244,31 @@ export function PolymerSimulator() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {/* IMPROVED: show "—" if no zone found */}
+                  {/* IMPROVED: show "—" if no zone found, show cost breakdown */}
                   <TableRow className={zoneFound && cheapest === "Pombalense" ? "bg-green-50 dark:bg-green-950/30" : ""}>
                     <TableCell className="font-medium">
-                      Pombalense (Subcontratação)
-                      {zoneFound && cheapest === "Pombalense" && (
-                        <span className="ml-2 text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-2 py-0.5 rounded-full">
-                          Mais económico
-                        </span>
-                      )}
-                      {/* IMPROVED: show extra rate badge */}
-                      {zoneFound && extraRate > 0 && (
-                        <span className="ml-2 text-xs bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200 px-2 py-0.5 rounded-full">
-                          +{extraRate}% aplicado
-                        </span>
+                      <div>
+                        Pombalense (Subcontratação)
+                        {zoneFound && cheapest === "Pombalense" && (
+                          <span className="ml-2 text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-2 py-0.5 rounded-full">
+                            Mais económico
+                          </span>
+                        )}
+                        {/* IMPROVED: show extra rate badge */}
+                        {zoneFound && extraRate > 0 && (
+                          <span className="ml-2 text-xs bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200 px-2 py-0.5 rounded-full">
+                            +{extraRate}% aplicado
+                          </span>
+                        )}
+                      </div>
+                      {/* IMPROVED: cost breakdown detail */}
+                      {zoneFound && (
+                        <div className="mt-1">
+                          <p className="text-xs text-muted-foreground">Custo por peso: {results.pombalense.weightCost.toFixed(2)} €</p>
+                          {results.pombalense.deliveryCost > 0 && (
+                            <p className="text-xs text-muted-foreground">Custo deslocações: {results.pombalense.deliveryCost.toFixed(2)} €</p>
+                          )}
+                        </div>
                       )}
                     </TableCell>
                     <TableCell className="text-right">{zoneFound ? results.pombalense.numFreights : "—"}</TableCell>
@@ -303,6 +314,54 @@ export function PolymerSimulator() {
               </Table>
             </CardContent>
           </Card>
+
+          {/* IMPROVED: heavy load comparison block for >10 ton */}
+          {results.heavyLoadComparison && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">⚖️ Análise de Carga Completa</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex justify-between text-sm">
+                  <span>Custo CF incremental (além 10 ton)</span>
+                  <span className="font-medium">{results.heavyLoadComparison.custoCFIncremental.toFixed(2)} €</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span>Custo 3 Eixos (tabela CC, mesmo destino)</span>
+                  <span className="font-medium">
+                    {results.heavyLoadComparison.custoThreeAxle !== null
+                      ? `${results.heavyLoadComparison.custoThreeAxle.toFixed(2)} €`
+                      : "Não disponível para este destino"}
+                  </span>
+                </div>
+                {results.heavyLoadComparison.suggestThreeAxle && (
+                  <span className="inline-block text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-2 py-0.5 rounded-full">
+                    ✅ 3 Eixos mais económico
+                  </span>
+                )}
+                {totalWeight > 15 && (
+                  <div className="flex justify-between text-sm">
+                    <span>Custo Reboque</span>
+                    <span className="font-medium">
+                      {results.heavyLoadComparison.custoTrailer !== null
+                        ? `${results.heavyLoadComparison.custoTrailer.toFixed(2)} €`
+                        : "Não disponível"}
+                    </span>
+                  </div>
+                )}
+                {results.heavyLoadComparison.suggestTrailer && (
+                  <span className="inline-block text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-2 py-0.5 rounded-full">
+                    ✅ Reboque mais económico
+                  </span>
+                )}
+                {!results.heavyLoadComparison.suggestThreeAxle && !results.heavyLoadComparison.suggestTrailer && (
+                  <p className="text-xs text-muted-foreground italic">
+                    CF continua a ser a opção mais económica para este volume
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           <CostComparisonChart data={chartData} title="Comparação de Custos — Polímeros/Equipamentos" />
         </>
