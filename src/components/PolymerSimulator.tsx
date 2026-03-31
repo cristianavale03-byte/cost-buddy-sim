@@ -81,13 +81,16 @@ export function PolymerSimulator() {
     ? findCheapest(results.pombalense.totalCost, results.fleetOptions)
     : null;
 
+  // IMPROVED: exclude vehicles with excessive weight from chart
   const chartData = results
     ? [
         ...(zoneFound ? [{ name: "Pombalense", custo: Math.round(results.pombalense.totalCost * 100) / 100 }] : []),
-        ...results.fleetOptions.map((o) => ({
-          name: o.vehicleName,
-          custo: Math.round(o.totalCost * 100) / 100,
-        })),
+        ...results.fleetOptions
+          .filter((o) => totalWeight <= o.capacityTon)
+          .map((o) => ({
+            name: o.vehicleName,
+            custo: Math.round(o.totalCost * 100) / 100,
+          })),
       ]
     : [];
 
