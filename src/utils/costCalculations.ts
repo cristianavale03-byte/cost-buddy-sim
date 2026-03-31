@@ -212,7 +212,8 @@ export function calculateAllPolymerOptions(
   let heavyLoadComparison: HeavyLoadComparison | null = null;
   const isMeirinhas = originName.includes("Meirinhas");
   
-  if (totalWeightTon > 10 && !isMeirinhas) {
+  // IMPROVED: trigger heavy load analysis at >= 10 ton (inclusive)
+  if (totalWeightTon >= 10 && !isMeirinhas) {
     const zone = findCFZone(originName, destinationName);
     const beyondRate = zone?.beyondTenTonPerTon ?? 0;
     const custoCFIncremental = totalWeightTon * beyondRate;
