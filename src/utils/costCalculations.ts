@@ -232,14 +232,13 @@ export function calculateAllPolymerOptions(
       suggestThreeAxle = true;
     }
     
-    if (totalWeightTon > 15) {
-      custoTrailer = getCCPrice(destinationName, "trailer");
-      if (custoTrailer !== null && custoTrailer < custoBaseEfetivo) {
-        custoBaseEfetivo = custoTrailer;
-        optionUsed = "Reboque";
-        suggestTrailer = true;
-        suggestThreeAxle = false;
-      }
+    // IMPROVED: always fetch trailer cost for comparison
+    custoTrailer = getCCPrice(destinationName, "trailer");
+    if (custoTrailer !== null && custoTrailer < custoBaseEfetivo) {
+      custoBaseEfetivo = custoTrailer;
+      optionUsed = "Reboque";
+      suggestTrailer = true;
+      suggestThreeAxle = false;
     }
     
     heavyLoadComparison = {

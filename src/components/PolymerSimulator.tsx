@@ -308,23 +308,22 @@ export function PolymerSimulator() {
                                 : "Não disponível"}
                             </span>
                           </div>
-                          {totalWeight > 15 && (
-                            <div className="flex justify-between text-xs text-muted-foreground">
-                              <span>
-                                Custo Reboque
-                                {results.heavyLoadComparison.optionUsed === "Reboque" && (
-                                  <span className="ml-2 inline-block text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-2 py-0.5 rounded-full">
-                                    ✅ Opção mais económica — aplicada ao custo total
-                                  </span>
-                                )}
-                              </span>
-                              <span className="font-medium text-foreground">
-                                {results.heavyLoadComparison.custoTrailer !== null
-                                  ? `${results.heavyLoadComparison.custoTrailer.toFixed(2)} €`
-                                  : "Não disponível"}
-                              </span>
-                            </div>
-                          )}
+                          {/* IMPROVED: always show Reboque alongside 3 Eixos */}
+                          <div className="flex justify-between text-xs text-muted-foreground">
+                            <span>
+                              Custo Reboque
+                              {results.heavyLoadComparison.optionUsed === "Reboque" && (
+                                <span className="ml-2 inline-block text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-2 py-0.5 rounded-full">
+                                  ✅ Opção mais económica — aplicada ao custo total
+                                </span>
+                              )}
+                            </span>
+                            <span className="font-medium text-foreground">
+                              {results.heavyLoadComparison.custoTrailer !== null
+                                ? `${results.heavyLoadComparison.custoTrailer.toFixed(2)} €`
+                                : "Não disponível"}
+                            </span>
+                          </div>
                         </div>
                       )}
                     </TableCell>
