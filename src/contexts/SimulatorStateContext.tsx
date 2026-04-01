@@ -69,7 +69,8 @@ const defaultPolymer: PolymerState = {
 const defaultConstruction: ConstructionState = {
   destination: "",
   totalKm: 0,
-  lines: [{ id: crypto.randomUUID(), numPlates: 0, dimensionLabel: "", lengthMeters: 0, weightTon: 0 }],
+  // IMPROVED: default numPlates=1
+  lines: [{ id: crypto.randomUUID(), numPlates: 1, dimensionLabel: "", lengthMeters: 0, weightTon: 0 }],
   numFreightsManual: 0,
   results: null,
 };

@@ -209,7 +209,7 @@ export function ConstructionSimulator() {
   const setResults = (r: typeof results) => update({ results: r });
 
   const addLine = () => {
-    setLines([...lines, { id: crypto.randomUUID(), numPlates: 0, dimensionLabel: "", lengthMeters: 0, weightTon: 0 }]);
+    setLines([...lines, { id: crypto.randomUUID(), numPlates: 1, dimensionLabel: "", lengthMeters: 0, weightTon: 0 }]);
   };
 
   const removeLine = (id: string) => {
@@ -237,7 +237,7 @@ export function ConstructionSimulator() {
 
   // IMPROVED: clear all fields and reset context
   const handleClear = () => {
-    setConstruction({ ...defaultConstruction, lines: [{ id: crypto.randomUUID(), numPlates: 0, dimensionLabel: "", lengthMeters: 0, weightTon: 0 }] });
+    setConstruction({ ...defaultConstruction, lines: [{ id: crypto.randomUUID(), numPlates: 1, dimensionLabel: "", lengthMeters: 0, weightTon: 0 }] });
     setShowSaveInput(false);
     setEstimateName("");
   };
