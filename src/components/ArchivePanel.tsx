@@ -200,7 +200,19 @@ export function ArchivePanel() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sorted.map(e => (
+              {sorted.map(e => {
+                // IMPROVED: highlight cheapest cost cell with green background
+                const costs = [
+                  { key: "pombalense", val: e.pombalenseTotalCost },
+                  { key: "fleet6t", val: e.fleet6tCost },
+                  { key: "fleet9t", val: e.fleet9tCost },
+                  { key: "fleet15t", val: e.fleet15tCost },
+                ].filter(c => c.val != null && c.val > 0);
+                const minCost = costs.length > 0 ? Math.min(...costs.map(c => c.val!)) : null;
+                const cheapestKey = costs.find(c => c.val === minCost)?.key;
+                const greenCls = "bg-green-100 dark:bg-green-900/40";
+
+                return (
                 <TableRow key={e.id}>
                   <TableCell className="text-xs py-2 font-medium">{e.name}</TableCell>
                   <TableCell className="text-xs py-2">
@@ -211,11 +223,10 @@ export function ArchivePanel() {
                   <TableCell className="text-xs py-2">{formatDate(e.savedAt)}</TableCell>
                   <TableCell className="text-xs py-2">{getRoute(e)}</TableCell>
                   <TableCell className="text-xs py-2">{getWeightOrMeters(e)}</TableCell>
-                  <TableCell className="text-xs py-2 font-medium">{e.pombalenseTotalCost?.toFixed(2) ?? "—"} €</TableCell>
-                  {/* IMPROVED: individual fleet cost cells */}
-                  <TableCell className="text-xs py-2">{e.fleet6tCost?.toFixed(2) ?? "—"} €</TableCell>
-                  <TableCell className="text-xs py-2">{e.fleet9tCost?.toFixed(2) ?? "—"} €</TableCell>
-                  <TableCell className="text-xs py-2">{e.fleet15tCost?.toFixed(2) ?? "—"} €</TableCell>
+                  <TableCell className={`text-xs py-2 font-medium ${cheapestKey === "pombalense" ? greenCls : ""}`}>{e.pombalenseTotalCost?.toFixed(2) ?? "—"} €</TableCell>
+                  <TableCell className={`text-xs py-2 ${cheapestKey === "fleet6t" ? greenCls : ""}`}>{e.fleet6tCost?.toFixed(2) ?? "—"} €</TableCell>
+                  <TableCell className={`text-xs py-2 ${cheapestKey === "fleet9t" ? greenCls : ""}`}>{e.fleet9tCost?.toFixed(2) ?? "—"} €</TableCell>
+                  <TableCell className={`text-xs py-2 ${cheapestKey === "fleet15t" ? greenCls : ""}`}>{e.fleet15tCost?.toFixed(2) ?? "—"} €</TableCell>
                   <TableCell className="text-xs py-2">
                     {e.cheapestOption === "Pombalense" ? (
                       <Badge className="text-[10px] bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 hover:bg-green-100">
