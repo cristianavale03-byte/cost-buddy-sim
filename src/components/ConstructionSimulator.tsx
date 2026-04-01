@@ -94,8 +94,11 @@ function calculateConstructionCost(
     largestLabel = "Chapas 3×2m";
   } else if (largestMeters <= 6) {
     largestLabel = "Chapas 4 a 6m";
-  } else {
+  } else if (largestMeters <= 8) {
     largestLabel = "Chapas 7 a 8m";
+  } else {
+    // > 8m → uses 3 eixos/reboque pricing, but label stays descriptive
+    largestLabel = "Chapas > 8m";
   }
 
   const totalMeters = largestMeters;
@@ -129,14 +132,14 @@ function calculateConstructionCost(
   let effectiveCostPerFreight: number;
 
   if (weightTon > 15) {
-    // 15-25 ton → reboque
     pricingMode = "reboque";
     effectiveCostPerFreight = custoReboque ?? custo3Eixos ?? custoBase ?? 0;
-  } else if (largestMeters > 8 || largestLabel === "Chapas 7 a 8m") {
-    // > 8m or 7-8m category → 3 eixos (weight ≤ 15t)
+  } else if (largestMeters > 8) {
+    // > 8m → 3 eixos
     pricingMode = "3eixos";
     effectiveCostPerFreight = custo3Eixos ?? custoBase ?? 0;
   } else {
+    // ≤ 8m → use CC column price (including "Chapas 7 a 8m" for 7-8m)
     pricingMode = "base";
     effectiveCostPerFreight = custoBase ?? 0;
   }
