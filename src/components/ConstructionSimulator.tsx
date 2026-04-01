@@ -167,7 +167,7 @@ function calculateConstructionCost(
     destination,
     largestPlateLabel: largestLabel,
     largestPlateMeters: largestMeters,
-    ccColumnUsed: largestLabel,
+    ccColumnUsed: pricingMode === "reboque" ? "Reboque" : pricingMode === "3eixos" ? "3 Eixos" : largestLabel,
     custoBase,
     custo3Eixos,
     custoReboque,
