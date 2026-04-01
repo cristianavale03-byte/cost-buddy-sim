@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Trash2, TrendingDown, Info } from "lucide-react";
 import { origins, cfZones } from "@/data/fleetData";
+import { getEstimatedRoundTripKm } from "@/data/distanceData";
 import {
   calculateAllPolymerOptions,
   findCheapest,
