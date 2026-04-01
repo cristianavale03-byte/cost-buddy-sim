@@ -90,8 +90,11 @@ export function ArchivePanel() {
       "Data/Hora": formatDate(e.savedAt),
       Rota: getRoute(e),
       "Peso/Metros": getWeightOrMeters(e),
-      "Custo Pombalense (€)": e.pombalenseTotalCost?.toFixed(2) ?? "—",
-      "Melhor Frota": e.bestFleetOption ? `${e.bestFleetOption} (${e.bestFleetCost?.toFixed(2)} €)` : "—",
+      "Pombalense (€)": e.pombalenseTotalCost?.toFixed(2) ?? "—",
+      // IMPROVED: individual fleet cost columns
+      "Frota 6t (€)": e.fleet6tCost?.toFixed(2) ?? "—",
+      "Frota 9t (€)": e.fleet9tCost?.toFixed(2) ?? "—",
+      "Frota 15t (€)": e.fleet15tCost?.toFixed(2) ?? "—",
       "Opção Mais Económica": e.cheapestOption ?? "—",
     }));
     const ws = XLSX.utils.json_to_sheet(rows);
