@@ -3,7 +3,7 @@ import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-// IMPROVED: wrap app with SimulatorStateProvider to preserve state across tabs
+// IMPROVED: wrap app with SimulatorStateProvider to preserve state across tabs (context)
 import { SimulatorStateProvider } from "@/contexts/SimulatorStateContext";
 import Index from "./pages/Index.tsx";
 import Login from "./pages/Login.tsx";
