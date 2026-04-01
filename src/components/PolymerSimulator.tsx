@@ -119,7 +119,7 @@ export function PolymerSimulator() {
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Destino</Label>
-              <Select value={destination} onValueChange={setDestination} disabled={!origin}>
+              <Select value={destination} onValueChange={handleDestinationChange} disabled={!origin}>
                 <SelectTrigger className="h-9">
                   <SelectValue placeholder={origin ? "Selecionar destino" : "Seleciona primeiro a origem"} />
                 </SelectTrigger>
