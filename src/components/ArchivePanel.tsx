@@ -60,7 +60,10 @@ export function ArchivePanel() {
       case "route": va = getRoute(a); vb = getRoute(b); break;
       case "weight": va = a.totalWeightTon ?? a.weightTon ?? 0; vb = b.totalWeightTon ?? b.weightTon ?? 0; break;
       case "pombalense": va = a.pombalenseTotalCost ?? 0; vb = b.pombalenseTotalCost ?? 0; break;
-      case "fleet": va = a.bestFleetCost ?? 0; vb = b.bestFleetCost ?? 0; break;
+      // IMPROVED: sort by individual fleet costs
+      case "fleet6t": va = a.fleet6tCost ?? 0; vb = b.fleet6tCost ?? 0; break;
+      case "fleet9t": va = a.fleet9tCost ?? 0; vb = b.fleet9tCost ?? 0; break;
+      case "fleet15t": va = a.fleet15tCost ?? 0; vb = b.fleet15tCost ?? 0; break;
       case "cheapest": va = a.cheapestOption ?? ""; vb = b.cheapestOption ?? ""; break;
     }
     const cmp = typeof va === "number" && typeof vb === "number" ? va - vb : String(va).localeCompare(String(vb));
