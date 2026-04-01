@@ -212,11 +212,10 @@ export function ArchivePanel() {
                   <TableCell className="text-xs py-2">{getRoute(e)}</TableCell>
                   <TableCell className="text-xs py-2">{getWeightOrMeters(e)}</TableCell>
                   <TableCell className="text-xs py-2 font-medium">{e.pombalenseTotalCost?.toFixed(2) ?? "—"} €</TableCell>
-                  <TableCell className="text-xs py-2">
-                    {e.bestFleetOption ? (
-                      <span>{e.bestFleetOption} ({e.bestFleetCost?.toFixed(2)} €)</span>
-                    ) : "—"}
-                  </TableCell>
+                  {/* IMPROVED: individual fleet cost cells */}
+                  <TableCell className="text-xs py-2">{e.fleet6tCost?.toFixed(2) ?? "—"} €</TableCell>
+                  <TableCell className="text-xs py-2">{e.fleet9tCost?.toFixed(2) ?? "—"} €</TableCell>
+                  <TableCell className="text-xs py-2">{e.fleet15tCost?.toFixed(2) ?? "—"} €</TableCell>
                   <TableCell className="text-xs py-2">
                     {e.cheapestOption === "Pombalense" ? (
                       <Badge className="text-[10px] bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 hover:bg-green-100">
