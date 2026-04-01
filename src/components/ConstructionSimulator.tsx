@@ -221,7 +221,7 @@ export function ConstructionSimulator() {
           <CardTitle className="text-lg">Dados do Transporte</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div className="space-y-1">
               <Label className="text-xs flex items-center gap-1">
                 Origem <Lock className="h-3 w-3 text-muted-foreground" />
@@ -246,10 +246,6 @@ export function ConstructionSimulator() {
             <div className="space-y-1">
               <Label className="text-xs">Km Totais (ida + volta)</Label>
               <Input className="h-9" type="number" value={totalKm || ""} onChange={e => setTotalKm(Number(e.target.value))} placeholder="Ex: 360" />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Peso Total (ton)</Label>
-              <Input className="h-9" type="number" value={weightTon || ""} onChange={e => setWeightTon(Number(e.target.value))} placeholder="Ex: 5" step="0.1" />
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Nº de Deslocações</Label>
