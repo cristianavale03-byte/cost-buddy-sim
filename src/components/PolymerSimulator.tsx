@@ -55,7 +55,16 @@ export function PolymerSimulator() {
   const handleOriginChange = (val: string) => {
     setOrigin(val);
     setDestination("");
+    setTotalKm(0);
     setResults(null);
+  };
+
+  const handleDestinationChange = (val: string) => {
+    setDestination(val);
+    const estimated = getEstimatedRoundTripKm(origin, val);
+    if (estimated !== null) {
+      setTotalKm(estimated);
+    }
   };
 
   const simulate = () => {
