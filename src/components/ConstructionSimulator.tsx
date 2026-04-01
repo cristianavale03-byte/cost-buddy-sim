@@ -408,7 +408,8 @@ export function ConstructionSimulator() {
                 {lines.map(line => (
                   <TableRow key={line.id}>
                     <TableCell className="py-1">
-                      <Input className="h-8" type="number" min={1} value={line.numPlates || 1} onChange={e => updatePlates(line.id, Number(e.target.value) || 1)} placeholder="1" />
+                      {/* IMPROVED: number of plates accepts only positive integers */}
+                      <Input className="h-8" type="number" min={1} step={1} value={normalizePositiveInt(line.numPlates)} onChange={e => updatePlates(line.id, e.target.value)} placeholder="1" />
                     </TableCell>
                     <TableCell className="py-1">
                       <Input className="h-8" type="number" value={line.lengthMeters || ""} onChange={e => updateLength(line.id, Number(e.target.value))} placeholder="0.0" step="0.1" />
