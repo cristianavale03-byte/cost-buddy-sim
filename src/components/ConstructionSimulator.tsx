@@ -12,6 +12,7 @@ import { CostComparisonChart } from "./CostComparisonChart";
 import type { ConstructionLine } from "@/utils/costCalculations";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { usePombalenseExtraRate } from "@/hooks/usePombalenseExtraRate";
+import { getConstructionRoundTripKm } from "@/data/distanceData";
 
 const ccDestinations = ccPrices.map(p => p.destination).sort();
 
