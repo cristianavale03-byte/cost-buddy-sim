@@ -79,7 +79,6 @@ function calculateConstructionCost(
   if (!entry) return null;
 
   let largestMeters = 0;
-
   for (const line of lines) {
     if (line.numPlates <= 0) continue;
     if (line.lengthMeters > largestMeters) {
@@ -101,40 +100,47 @@ function calculateConstructionCost(
 
   const totalMeters = largestMeters;
 
-  if (largestMeters > MAX_VEHICLE_LENGTH_METERS) {
+  // Global impossible: plate exceeds absolute max or weight exceeds reboque
+  if (largestMeters > MAX_PLATE_LENGTH) {
     return {
       destination, largestPlateLabel: largestLabel, largestPlateMeters: largestMeters,
-      custoBase: null, custo3Eixos: null, custoReboque: null, isExcessive: false,
-      numFreights: 0, totalMeters, custoFinal: 0, custoKm: null, custoMetro: null,
+      ccColumnUsed: largestLabel, custoBase: null, custo3Eixos: null, custoReboque: null,
+      pricingMode: "base", numFreights: 0, totalMeters, custoFinal: 0, custoKm: null, custoMetro: null,
       fleetOptions: [], impossible: true, impossibleReason: "comprimento excedente",
     };
   }
 
-  if (weightTon > MAX_VEHICLE_WEIGHT_TON) {
+  if (weightTon > MAX_WEIGHT_REBOQUE) {
     return {
       destination, largestPlateLabel: largestLabel, largestPlateMeters: largestMeters,
-      custoBase: null, custo3Eixos: null, custoReboque: null, isExcessive: false,
-      numFreights: 0, totalMeters, custoFinal: 0, custoKm: null, custoMetro: null,
-      fleetOptions: [], impossible: true, impossibleReason: "peso excedente",
+      ccColumnUsed: largestLabel, custoBase: null, custo3Eixos: null, custoReboque: null,
+      pricingMode: "base", numFreights: 0, totalMeters, custoFinal: 0, custoKm: null, custoMetro: null,
+      fleetOptions: [], impossible: true, impossibleReason: "peso excedente (> 25 ton)",
     };
   }
 
   const ccField = dimensionToCCField[largestLabel];
-  let custoBase = ccField ? getCCEntryPrice(entry, ccField) : null;
-
-  const isExcessive = largestLabel === "Chapas 7 a 8m";
+  const custoBase = ccField ? getCCEntryPrice(entry, ccField) : null;
   const custo3Eixos = getCCEntryPrice(entry, "threeAxle");
   const custoReboque = getCCEntryPrice(entry, "trailer");
 
+  // Determine pricing mode based on weight
+  let pricingMode: "base" | "3eixos" | "reboque";
   let effectiveCostPerFreight: number;
-  if (isExcessive && custo3Eixos !== null) {
-    effectiveCostPerFreight = custo3Eixos;
-  } else if (custoBase !== null) {
-    effectiveCostPerFreight = custoBase;
-  } else if (custo3Eixos !== null) {
-    effectiveCostPerFreight = custo3Eixos;
+
+  if (weightTon > 15) {
+    // 15-25 ton → reboque
+    pricingMode = "reboque";
+    effectiveCostPerFreight = custoReboque ?? custo3Eixos ?? custoBase ?? 0;
   } else {
-    effectiveCostPerFreight = 0;
+    // ≤ 15 ton → use CC column price; for 7-8m use 3 eixos
+    if (largestLabel === "Chapas 7 a 8m" && custo3Eixos !== null) {
+      pricingMode = "3eixos";
+      effectiveCostPerFreight = custo3Eixos;
+    } else {
+      pricingMode = "base";
+      effectiveCostPerFreight = custoBase ?? 0;
+    }
   }
 
   if (extraRate > 0) {
@@ -144,22 +150,26 @@ function calculateConstructionCost(
   const numFreights = manualFreights;
   const custoFinal = effectiveCostPerFreight * numFreights;
 
-  const fleetOptions = fleetVehicles.map(v => {
+  // Fleet options: check per-vehicle length and weight
+  const fleetOptions: FleetOptionResult[] = fleetVehicles.map(v => {
+    const lengthExcessive = largestMeters > v.capacityMeters;
+    const weightExcessive = weightTon > v.capacityTon;
     const result = calculateFleetCostByMeters(v, totalKm, totalMeters);
     result.numFreights = manualFreights;
     result.totalCost = v.costPerKm * totalKm * manualFreights;
     result.costPerKm2 = totalKm > 0 ? result.totalCost / totalKm : 0;
-    return result;
+    return { ...result, lengthExcessive, weightExcessive };
   });
 
   return {
     destination,
     largestPlateLabel: largestLabel,
     largestPlateMeters: largestMeters,
+    ccColumnUsed: largestLabel,
     custoBase,
-    custo3Eixos: isExcessive ? custo3Eixos : null,
-    custoReboque: isExcessive ? custoReboque : null,
-    isExcessive,
+    custo3Eixos,
+    custoReboque,
+    pricingMode,
     numFreights,
     totalMeters,
     custoFinal,
