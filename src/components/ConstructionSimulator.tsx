@@ -171,7 +171,7 @@ export function ConstructionSimulator() {
   const totalMeters = largestPlateMeters;
 
   const addLine = () => {
-    setLines([...lines, { id: crypto.randomUUID(), numPlates: 0, dimensionLabel: "Chapas 4 a 6m", lengthMeters: 6, weightTon: 0 }]);
+    setLines([...lines, { id: crypto.randomUUID(), numPlates: 0, dimensionLabel: "", lengthMeters: 0, weightTon: 0 }]);
   };
 
   const removeLine = (id: string) => {
