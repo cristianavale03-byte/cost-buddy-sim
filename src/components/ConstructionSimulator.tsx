@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Trash2, TrendingDown, Lock, AlertTriangle, Info } from "lucide-react";
-import { ccPrices, dimensionTypes, fleetVehicles, type CCPriceEntry } from "@/data/fleetData";
+import { ccPrices, dimensionTypes, fleetVehicles, deliveryCostPerEntry, type CCPriceEntry } from "@/data/fleetData";
 import { calculateFleetCostByMeters, findCheapest, type FleetCostResult } from "@/utils/costCalculations";
 import { CostComparisonChart } from "./CostComparisonChart";
 import type { ConstructionLine } from "@/utils/costCalculations";
