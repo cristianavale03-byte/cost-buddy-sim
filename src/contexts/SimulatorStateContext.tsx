@@ -97,7 +97,7 @@ export function SimulatorStateProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <SimulatorStateContext.Provider value={{ polymer, setPolymer, construction, setConstruction, savedEstimates, setSavedEstimates }}>
+    <SimulatorStateContext.Provider value={{ polymer, setPolymer, construction, setConstruction, savedEstimates, setSavedEstimates: setSavedEstimatesAndPersist }}>
       {children}
     </SimulatorStateContext.Provider>
   );
