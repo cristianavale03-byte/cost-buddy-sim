@@ -94,8 +94,11 @@ function calculateConstructionCost(
     largestLabel = "Chapas 3×2m";
   } else if (largestMeters <= 6) {
     largestLabel = "Chapas 4 a 6m";
-  } else {
+  } else if (largestMeters <= 8) {
     largestLabel = "Chapas 7 a 8m";
+  } else {
+    // > 8m → uses 3 eixos/reboque pricing, but label stays descriptive
+    largestLabel = "Chapas > 8m";
   }
 
   const totalMeters = largestMeters;
