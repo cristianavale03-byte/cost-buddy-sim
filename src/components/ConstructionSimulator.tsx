@@ -35,6 +35,16 @@ const dimensionToCCField: Record<string, keyof CCPriceEntry> = {
 const MAX_PLATE_LENGTH = 13.6;
 const MAX_WEIGHT_REBOQUE = 25;
 
+// IMPROVED: normalize plate count and reuse a valid default construction line
+const normalizePositiveInt = (value: number | string) => Math.max(1, Math.floor(Number(value) || 1));
+const createConstructionLine = (): ConstructionLine => ({
+  id: crypto.randomUUID(),
+  numPlates: 1,
+  dimensionLabel: "",
+  lengthMeters: 0,
+  weightTon: 0,
+});
+
 interface FleetOptionResult extends FleetCostResult {
   lengthExcessive: boolean;
   weightExcessive: boolean;
