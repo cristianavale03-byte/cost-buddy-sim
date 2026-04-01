@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Trash2, TrendingDown, Info } from "lucide-react";
 import { origins, cfZones } from "@/data/fleetData";
+import { getEstimatedRoundTripKm } from "@/data/distanceData";
 import {
   calculateAllPolymerOptions,
   findCheapest,
@@ -54,7 +55,16 @@ export function PolymerSimulator() {
   const handleOriginChange = (val: string) => {
     setOrigin(val);
     setDestination("");
+    setTotalKm(0);
     setResults(null);
+  };
+
+  const handleDestinationChange = (val: string) => {
+    setDestination(val);
+    const estimated = getEstimatedRoundTripKm(origin, val);
+    if (estimated !== null) {
+      setTotalKm(estimated);
+    }
   };
 
   const simulate = () => {
@@ -109,7 +119,7 @@ export function PolymerSimulator() {
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Destino</Label>
-              <Select value={destination} onValueChange={setDestination} disabled={!origin}>
+              <Select value={destination} onValueChange={handleDestinationChange} disabled={!origin}>
                 <SelectTrigger className="h-9">
                   <SelectValue placeholder={origin ? "Selecionar destino" : "Seleciona primeiro a origem"} />
                 </SelectTrigger>

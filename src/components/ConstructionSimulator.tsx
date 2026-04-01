@@ -12,6 +12,7 @@ import { CostComparisonChart } from "./CostComparisonChart";
 import type { ConstructionLine } from "@/utils/costCalculations";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { usePombalenseExtraRate } from "@/hooks/usePombalenseExtraRate";
+import { getConstructionRoundTripKm } from "@/data/distanceData";
 
 const ccDestinations = ccPrices.map(p => p.destination).sort();
 
@@ -225,7 +226,11 @@ export function ConstructionSimulator() {
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Destino</Label>
-              <Select value={destination} onValueChange={setDestination}>
+              <Select value={destination} onValueChange={(val) => {
+                setDestination(val);
+                const estimated = getConstructionRoundTripKm(val);
+                if (estimated !== null) setTotalKm(estimated);
+              }}>
                 <SelectTrigger className="h-9"><SelectValue placeholder="Selecionar destino" /></SelectTrigger>
                 <SelectContent>
                   {ccDestinations.map(d => (
