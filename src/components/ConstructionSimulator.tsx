@@ -160,7 +160,7 @@ export function ConstructionSimulator() {
   const [destination, setDestination] = useState("");
   const [totalKm, setTotalKm] = useState<number>(0);
   const [lines, setLines] = useState<ConstructionLine[]>([
-    { id: crypto.randomUUID(), numPlates: 0, dimensionLabel: "Chapas 4 a 6m", lengthMeters: 6, weightTon: 0 },
+    { id: crypto.randomUUID(), numPlates: 0, dimensionLabel: "", lengthMeters: 0, weightTon: 0 },
   ]);
   const weightTon = lines.reduce((sum, l) => sum + (l.weightTon || 0), 0);
   const [numFreightsManual, setNumFreightsManual] = useState<number>(0);
