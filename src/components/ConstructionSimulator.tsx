@@ -368,14 +368,18 @@ export function ConstructionSimulator() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-3 space-y-3">
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                   <div className="p-2 bg-muted/50 rounded-md">
                     <p className="text-[10px] text-muted-foreground">Placa Maior</p>
-                    <p className="text-xs font-semibold">{results.largestPlateLabel}</p>
+                    <p className="text-xs font-semibold">{results.totalMeters.toFixed(1)} m</p>
                   </div>
                   <div className="p-2 bg-muted/50 rounded-md">
-                    <p className="text-[10px] text-muted-foreground">Comp.</p>
-                    <p className="text-xs font-semibold">{results.totalMeters.toFixed(1)} m</p>
+                    <p className="text-[10px] text-muted-foreground">Coluna CC</p>
+                    <p className="text-xs font-semibold">{results.ccColumnUsed}</p>
+                  </div>
+                  <div className="p-2 bg-muted/50 rounded-md">
+                    <p className="text-[10px] text-muted-foreground">Peso Total</p>
+                    <p className="text-xs font-semibold">{weightTon.toFixed(1)} ton</p>
                   </div>
                   <div className="p-2 bg-muted/50 rounded-md">
                     <p className="text-[10px] text-muted-foreground">Deslocações</p>
@@ -386,21 +390,26 @@ export function ConstructionSimulator() {
                 <div className="p-3 border rounded-md space-y-1.5 text-xs">
                   <p className="font-medium">Preços CC — {results.destination}</p>
                   <div className="flex justify-between">
-                    <span>Base ({results.largestPlateLabel})</span>
-                    <span className="font-medium">{results.custoBase !== null ? `${results.custoBase.toFixed(2)} €` : "N/D"}</span>
+                    <span>Base ({results.ccColumnUsed})</span>
+                    <span className={`font-medium ${results.pricingMode === "base" ? "text-primary font-bold" : ""}`}>
+                      {results.custoBase !== null ? `${results.custoBase.toFixed(2)} €` : "N/D"}
+                      {results.pricingMode === "base" && " ✓"}
+                    </span>
                   </div>
-                  {results.isExcessive && (
-                    <>
-                      <div className="flex justify-between border-t pt-1">
-                        <span className="text-primary font-medium">3 Eixos (aplicado)</span>
-                        <span className="font-bold text-primary">{results.custo3Eixos !== null ? `${results.custo3Eixos.toFixed(2)} €` : "N/D"}</span>
-                      </div>
-                      <div className="flex justify-between text-muted-foreground">
-                        <span>Reboque (ref.)</span>
-                        <span>{results.custoReboque !== null ? `${results.custoReboque.toFixed(2)} €` : "N/D"}</span>
-                      </div>
-                    </>
-                  )}
+                  <div className="flex justify-between">
+                    <span>3 Eixos (≤ 15 ton)</span>
+                    <span className={`font-medium ${results.pricingMode === "3eixos" ? "text-primary font-bold" : ""}`}>
+                      {results.custo3Eixos !== null ? `${results.custo3Eixos.toFixed(2)} €` : "N/D"}
+                      {results.pricingMode === "3eixos" && " ✓"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Reboque (15–25 ton)</span>
+                    <span className={`font-medium ${results.pricingMode === "reboque" ? "text-primary font-bold" : ""}`}>
+                      {results.custoReboque !== null ? `${results.custoReboque.toFixed(2)} €` : "N/D"}
+                      {results.pricingMode === "reboque" && " ✓"}
+                    </span>
+                  </div>
                   <div className="flex justify-between font-bold border-t pt-1.5 text-sm">
                     <span>Custo Total</span>
                     <span>
