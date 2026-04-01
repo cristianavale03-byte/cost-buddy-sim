@@ -17,6 +17,10 @@ export interface SavedEstimate {
   pombalensetDeliveryCost?: number;
   bestFleetOption?: string;
   bestFleetCost?: number;
+  // IMPROVED: individual fleet costs for archive table
+  fleet6tCost?: number;
+  fleet9tCost?: number;
+  fleet15tCost?: number;
   cheapestOption?: string;
   heavyLoadComparison?: object;
   weightTon?: number;
