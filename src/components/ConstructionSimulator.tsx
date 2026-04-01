@@ -306,6 +306,7 @@ export function ConstructionSimulator() {
             <div className="mt-2 flex items-center justify-between">
               <p className="text-xs text-muted-foreground">
                 Placa Maior: <span className="font-bold text-foreground">{totalMeters.toFixed(1)} m</span>
+                <span className="ml-3">Peso Total: <span className="font-bold text-foreground">{weightTon.toFixed(1)} ton</span></span>
               </p>
               <Button size="sm" onClick={simulate} disabled={!destination}>
                 Simular Custos
