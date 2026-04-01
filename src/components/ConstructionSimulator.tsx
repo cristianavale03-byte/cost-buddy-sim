@@ -228,14 +228,18 @@ export function ConstructionSimulator() {
     setResults(result);
   };
 
+  const validFleetOptions = results && !results.impossible
+    ? results.fleetOptions.filter(o => !o.lengthExcessive && !o.weightExcessive)
+    : [];
+
   const cheapest = results && !results.impossible
-    ? findCheapest(results.custoFinal, results.fleetOptions)
+    ? findCheapest(results.custoFinal, validFleetOptions)
     : null;
 
   const chartData = results && !results.impossible
     ? [
         { name: "Pombalense", custo: Math.round(results.custoFinal * 100) / 100 },
-        ...results.fleetOptions.map(o => ({
+        ...validFleetOptions.map(o => ({
           name: o.vehicleName,
           custo: Math.round(o.totalCost * 100) / 100,
         })),
