@@ -214,9 +214,11 @@ export function calculateAllPolymerOptions(
     let suggestThreeAxle = false;
     let suggestTrailer = false;
     
-    // IMPROVED: determine custoBaseEfetivo as the cheapest available option
-    let custoBaseEfetivo = custoCFIncremental;
-    let optionUsed: "CF" | "3Eixos" | "Reboque" = "CF";
+    // IMPROVED: when numDeliveries > 0, skip CF incremental — only consider 3 Eixos or Reboque
+    const skipCFIncremental = numDeliveries > 0;
+    
+    let custoBaseEfetivo = skipCFIncremental ? Infinity : custoCFIncremental;
+    let optionUsed: "CF" | "3Eixos" | "Reboque" = skipCFIncremental ? "3Eixos" : "CF";
     
     if (custoThreeAxle !== null && custoThreeAxle < custoBaseEfetivo) {
       custoBaseEfetivo = custoThreeAxle;
@@ -224,13 +226,18 @@ export function calculateAllPolymerOptions(
       suggestThreeAxle = true;
     }
     
-    // IMPROVED: always fetch trailer cost for comparison
     custoTrailer = getCCPrice(destinationName, "trailer");
     if (custoTrailer !== null && custoTrailer < custoBaseEfetivo) {
       custoBaseEfetivo = custoTrailer;
       optionUsed = "Reboque";
       suggestTrailer = true;
       suggestThreeAxle = false;
+    }
+    
+    // If skipping CF and no CC options available, fall back to CF incremental
+    if (skipCFIncremental && custoBaseEfetivo === Infinity) {
+      custoBaseEfetivo = custoCFIncremental;
+      optionUsed = "CF";
     }
     
     heavyLoadComparison = {
