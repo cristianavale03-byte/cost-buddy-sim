@@ -285,8 +285,13 @@ export function PolymerSimulator() {
                       {results.heavyLoadComparison && (
                         <div className="mt-3 pt-3 border-t border-border space-y-2">
                           <p className="text-xs font-semibold">⚖️ Análise de Carga Completa</p>
+                          {numFreightsManual > 0 && (
+                            <p className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                              <Info className="h-3 w-3" /> Com deslocações, o custo CF incremental é ignorado — apenas 3 Eixos e Reboque são considerados
+                            </p>
+                          )}
                           <div className="flex justify-between text-xs text-muted-foreground">
-                            <span>
+                            <span className={numFreightsManual > 0 ? "line-through opacity-50" : ""}>
                               Custo CF incremental (além 10 ton)
                               {results.heavyLoadComparison.optionUsed === "CF" && (
                                 <span className="ml-2 inline-block text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-2 py-0.5 rounded-full">
@@ -294,7 +299,7 @@ export function PolymerSimulator() {
                                 </span>
                               )}
                             </span>
-                            <span className="font-medium text-foreground">{results.heavyLoadComparison.custoCFIncremental.toFixed(2)} €</span>
+                            <span className={`font-medium text-foreground ${numFreightsManual > 0 ? "line-through opacity-50" : ""}`}>{results.heavyLoadComparison.custoCFIncremental.toFixed(2)} €</span>
                           </div>
                           <div className="flex justify-between text-xs text-muted-foreground">
                             <span>
