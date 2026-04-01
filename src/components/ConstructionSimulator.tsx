@@ -272,7 +272,6 @@ export function ConstructionSimulator() {
               <TableHeader>
                 <TableRow>
                   <TableHead className="text-xs py-1">Nº Placas</TableHead>
-                  <TableHead className="text-xs py-1">Tipo / Comprimento</TableHead>
                   <TableHead className="text-xs py-1">Comp. (m)</TableHead>
                   <TableHead className="text-xs py-1">Peso (ton)</TableHead>
                   <TableHead className="w-10 py-1"></TableHead>
@@ -285,18 +284,10 @@ export function ConstructionSimulator() {
                       <Input className="h-8" type="number" value={line.numPlates || ""} onChange={e => updatePlates(line.id, Number(e.target.value))} placeholder="0" />
                     </TableCell>
                     <TableCell className="py-1">
-                      <Select value={line.dimensionLabel} onValueChange={v => updateDimension(line.id, v)}>
-                        <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {dimensionTypes.map(d => (
-                            <SelectItem key={d.label} value={d.label}>{d.label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <Input className="h-8" type="number" value={line.lengthMeters || ""} onChange={e => updateLength(line.id, Number(e.target.value))} placeholder="0.0" step="0.1" />
                     </TableCell>
-                    <TableCell className="text-xs text-muted-foreground py-1">{line.lengthMeters} m</TableCell>
                     <TableCell className="py-1">
-                      <Input className="h-8" type="number" value={line.weightTon || ""} onChange={e => updateWeight(line.id, Number(e.target.value))} placeholder="0" step="0.1" />
+                      <Input className="h-8" type="number" value={line.weightTon || ""} onChange={e => updateWeight(line.id, Number(e.target.value))} placeholder="0.0" step="0.1" />
                     </TableCell>
                     <TableCell className="py-1">
                       <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => removeLine(line.id)} disabled={lines.length === 1}>
