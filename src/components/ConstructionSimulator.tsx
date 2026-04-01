@@ -193,6 +193,10 @@ export function ConstructionSimulator() {
     setLines(lines.map(l => (l.id === id ? { ...l, weightTon: weight } : l)));
   };
 
+  const updateLength = (id: string, length: number) => {
+    setLines(lines.map(l => (l.id === id ? { ...l, lengthMeters: length } : l)));
+  };
+
   const simulate = () => {
     if (!destination) return;
     const result = calculateConstructionCost(destination, lines, totalKm, weightTon, numFreightsManual, extraRate);
