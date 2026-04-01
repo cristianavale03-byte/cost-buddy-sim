@@ -148,15 +148,16 @@ function calculateConstructionCost(
   }
 
   const numFreights = manualFreights;
-  const custoFinal = effectiveCostPerFreight * numFreights;
+  const deliveryCost = numFreights > 0 ? numFreights * deliveryCostPerEntry : 0;
+  const custoFinal = effectiveCostPerFreight + deliveryCost;
 
   // Fleet options: check per-vehicle length and weight
   const fleetOptions: FleetOptionResult[] = fleetVehicles.map(v => {
     const lengthExcessive = largestMeters > v.capacityMeters;
     const weightExcessive = weightTon > v.capacityTon;
     const result = calculateFleetCostByMeters(v, totalKm, totalMeters);
-    result.numFreights = manualFreights;
-    result.totalCost = v.costPerKm * totalKm * manualFreights;
+    result.numFreights = 1;
+    result.totalCost = v.costPerKm * totalKm;
     result.costPerKm2 = totalKm > 0 ? result.totalCost / totalKm : 0;
     return { ...result, lengthExcessive, weightExcessive };
   });
