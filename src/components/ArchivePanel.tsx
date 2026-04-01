@@ -157,8 +157,72 @@ export function ArchivePanel() {
     );
   }
 
+  // IMPROVED: compute average comparison between Pombalense and best fleet
+  const comparableEstimates = savedEstimates.filter(e => {
+    const hasPomb = e.pombalenseTotalCost != null && e.pombalenseTotalCost > 0;
+    const hasFleet = (e.fleet6tCost != null && e.fleet6tCost > 0) ||
+                     (e.fleet9tCost != null && e.fleet9tCost > 0) ||
+                     (e.fleet15tCost != null && e.fleet15tCost > 0);
+    return hasPomb && hasFleet;
+  });
+
+  const avgStats = (() => {
+    if (comparableEstimates.length === 0) return null;
+    let totalDiff = 0; // positive = fleet cheaper
+    let pombWins = 0;
+    let fleetWins = 0;
+    comparableEstimates.forEach(e => {
+      const pomb = e.pombalenseTotalCost!;
+      const fleetCosts = [e.fleet6tCost, e.fleet9tCost, e.fleet15tCost].filter((c): c is number => c != null && c > 0);
+      const bestFleet = Math.min(...fleetCosts);
+      totalDiff += pomb - bestFleet;
+      if (pomb < bestFleet) pombWins++;
+      else if (bestFleet < pomb) fleetWins++;
+    });
+    const avgDiff = totalDiff / comparableEstimates.length;
+    return { avgDiff, pombWins, fleetWins, total: comparableEstimates.length };
+  })();
+
   return (
     <div className="space-y-4">
+      {/* IMPROVED: Average comparison banner */}
+      {avgStats && (
+        <Card className={avgStats.avgDiff > 0 ? "border-blue-300 dark:border-blue-700" : "border-green-300 dark:border-green-700"}>
+          <CardContent className="py-4">
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <div className="flex items-center gap-3">
+                <div className={`flex items-center justify-center h-10 w-10 rounded-full ${avgStats.avgDiff > 0 ? "bg-blue-100 dark:bg-blue-900/50" : "bg-green-100 dark:bg-green-900/50"}`}>
+                  <ArrowUpDown className={`h-5 w-5 ${avgStats.avgDiff > 0 ? "text-blue-600 dark:text-blue-400" : "text-green-600 dark:text-green-400"}`} />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold">
+                    {avgStats.avgDiff > 0
+                      ? "Em média, a Frota Própria é mais económica"
+                      : avgStats.avgDiff < 0
+                        ? "Em média, a Pombalense é mais económica"
+                        : "Em média, os custos são iguais"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Diferença média: <span className="font-medium">{Math.abs(avgStats.avgDiff).toFixed(2)} €</span> por estimativa
+                    {" · "}Baseado em {avgStats.total} estimativa{avgStats.total > 1 ? "s" : ""} comparável{avgStats.total > 1 ? "is" : ""}
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-4 text-xs">
+                <div className="text-center">
+                  <span className="block text-lg font-bold text-green-600 dark:text-green-400">{avgStats.pombWins}</span>
+                  <span className="text-muted-foreground">Pombalense</span>
+                </div>
+                <div className="text-center">
+                  <span className="block text-lg font-bold text-blue-600 dark:text-blue-400">{avgStats.fleetWins}</span>
+                  <span className="text-muted-foreground">Frota</span>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           {/* IMPROVED: export buttons */}
