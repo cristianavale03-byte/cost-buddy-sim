@@ -159,10 +159,10 @@ function calculateConstructionCost(
 export function ConstructionSimulator() {
   const [destination, setDestination] = useState("");
   const [totalKm, setTotalKm] = useState<number>(0);
-  const [weightTon, setWeightTon] = useState<number>(0);
   const [lines, setLines] = useState<ConstructionLine[]>([
-    { id: crypto.randomUUID(), numPlates: 0, dimensionLabel: "Chapas 4 a 6m", lengthMeters: 6 },
+    { id: crypto.randomUUID(), numPlates: 0, dimensionLabel: "Chapas 4 a 6m", lengthMeters: 6, weightTon: 0 },
   ]);
+  const weightTon = lines.reduce((sum, l) => sum + (l.weightTon || 0), 0);
   const [numFreightsManual, setNumFreightsManual] = useState<number>(0);
   const [results, setResults] = useState<ConstructionResult | null>(null);
   const { rate: extraRate } = usePombalenseExtraRate();
@@ -171,7 +171,7 @@ export function ConstructionSimulator() {
   const totalMeters = largestPlateMeters;
 
   const addLine = () => {
-    setLines([...lines, { id: crypto.randomUUID(), numPlates: 0, dimensionLabel: "Chapas 4 a 6m", lengthMeters: 6 }]);
+    setLines([...lines, { id: crypto.randomUUID(), numPlates: 0, dimensionLabel: "Chapas 4 a 6m", lengthMeters: 6, weightTon: 0 }]);
   };
 
   const removeLine = (id: string) => {
@@ -187,6 +187,10 @@ export function ConstructionSimulator() {
 
   const updatePlates = (id: string, num: number) => {
     setLines(lines.map(l => (l.id === id ? { ...l, numPlates: num } : l)));
+  };
+
+  const updateWeight = (id: string, weight: number) => {
+    setLines(lines.map(l => (l.id === id ? { ...l, weightTon: weight } : l)));
   };
 
   const simulate = () => {
@@ -217,7 +221,7 @@ export function ConstructionSimulator() {
           <CardTitle className="text-lg">Dados do Transporte</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div className="space-y-1">
               <Label className="text-xs flex items-center gap-1">
                 Origem <Lock className="h-3 w-3 text-muted-foreground" />
@@ -244,10 +248,6 @@ export function ConstructionSimulator() {
               <Input className="h-9" type="number" value={totalKm || ""} onChange={e => setTotalKm(Number(e.target.value))} placeholder="Ex: 360" />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Peso Total (ton)</Label>
-              <Input className="h-9" type="number" value={weightTon || ""} onChange={e => setWeightTon(Number(e.target.value))} placeholder="Ex: 5" step="0.1" />
-            </div>
-            <div className="space-y-1">
               <Label className="text-xs">Nº de Deslocações</Label>
               <Input className="h-9" type="number" value={numFreightsManual} onChange={e => setNumFreightsManual(Math.max(0, Number(e.target.value)))} placeholder="0" min={0} />
               <p className="text-[10px] text-muted-foreground flex items-center gap-1">
@@ -270,6 +270,7 @@ export function ConstructionSimulator() {
                   <TableHead className="text-xs py-1">Nº Placas</TableHead>
                   <TableHead className="text-xs py-1">Tipo / Comprimento</TableHead>
                   <TableHead className="text-xs py-1">Comp. (m)</TableHead>
+                  <TableHead className="text-xs py-1">Peso (ton)</TableHead>
                   <TableHead className="w-10 py-1"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -291,6 +292,9 @@ export function ConstructionSimulator() {
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground py-1">{line.lengthMeters} m</TableCell>
                     <TableCell className="py-1">
+                      <Input className="h-8" type="number" value={line.weightTon || ""} onChange={e => updateWeight(line.id, Number(e.target.value))} placeholder="0" step="0.1" />
+                    </TableCell>
+                    <TableCell className="py-1">
                       <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => removeLine(line.id)} disabled={lines.length === 1}>
                         <Trash2 className="h-3 w-3 text-destructive" />
                       </Button>
@@ -302,6 +306,7 @@ export function ConstructionSimulator() {
             <div className="mt-2 flex items-center justify-between">
               <p className="text-xs text-muted-foreground">
                 Placa Maior: <span className="font-bold text-foreground">{totalMeters.toFixed(1)} m</span>
+                <span className="ml-3">Peso Total: <span className="font-bold text-foreground">{weightTon.toFixed(1)} ton</span></span>
               </p>
               <Button size="sm" onClick={simulate} disabled={!destination}>
                 Simular Custos

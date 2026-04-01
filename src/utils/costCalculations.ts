@@ -19,6 +19,7 @@ export interface ConstructionLine {
   numPlates: number;
   dimensionLabel: string;
   lengthMeters: number;
+  weightTon: number;
 }
 
 // IMPROVED: added custoBaseEfetivo and optionUsed to determine which option was applied
