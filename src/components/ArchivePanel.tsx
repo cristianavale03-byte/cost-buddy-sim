@@ -10,7 +10,8 @@ import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
-type SortKey = "name" | "type" | "savedAt" | "route" | "weight" | "pombalense" | "fleet" | "cheapest";
+// IMPROVED: added individual fleet cost sort keys
+type SortKey = "name" | "type" | "savedAt" | "route" | "weight" | "pombalense" | "fleet6t" | "fleet9t" | "fleet15t" | "cheapest";
 
 function formatDate(iso: string) {
   const d = new Date(iso);
@@ -59,7 +60,10 @@ export function ArchivePanel() {
       case "route": va = getRoute(a); vb = getRoute(b); break;
       case "weight": va = a.totalWeightTon ?? a.weightTon ?? 0; vb = b.totalWeightTon ?? b.weightTon ?? 0; break;
       case "pombalense": va = a.pombalenseTotalCost ?? 0; vb = b.pombalenseTotalCost ?? 0; break;
-      case "fleet": va = a.bestFleetCost ?? 0; vb = b.bestFleetCost ?? 0; break;
+      // IMPROVED: sort by individual fleet costs
+      case "fleet6t": va = a.fleet6tCost ?? 0; vb = b.fleet6tCost ?? 0; break;
+      case "fleet9t": va = a.fleet9tCost ?? 0; vb = b.fleet9tCost ?? 0; break;
+      case "fleet15t": va = a.fleet15tCost ?? 0; vb = b.fleet15tCost ?? 0; break;
       case "cheapest": va = a.cheapestOption ?? ""; vb = b.cheapestOption ?? ""; break;
     }
     const cmp = typeof va === "number" && typeof vb === "number" ? va - vb : String(va).localeCompare(String(vb));
@@ -86,8 +90,11 @@ export function ArchivePanel() {
       "Data/Hora": formatDate(e.savedAt),
       Rota: getRoute(e),
       "Peso/Metros": getWeightOrMeters(e),
-      "Custo Pombalense (€)": e.pombalenseTotalCost?.toFixed(2) ?? "—",
-      "Melhor Frota": e.bestFleetOption ? `${e.bestFleetOption} (${e.bestFleetCost?.toFixed(2)} €)` : "—",
+      "Pombalense (€)": e.pombalenseTotalCost?.toFixed(2) ?? "—",
+      // IMPROVED: individual fleet cost columns
+      "Frota 6t (€)": e.fleet6tCost?.toFixed(2) ?? "—",
+      "Frota 9t (€)": e.fleet9tCost?.toFixed(2) ?? "—",
+      "Frota 15t (€)": e.fleet15tCost?.toFixed(2) ?? "—",
       "Opção Mais Económica": e.cheapestOption ?? "—",
     }));
     const ws = XLSX.utils.json_to_sheet(rows);
@@ -104,7 +111,7 @@ export function ArchivePanel() {
     doc.setFontSize(9);
     doc.text(`Exportado em: ${formatDate(new Date().toISOString())}`, 14, 22);
 
-    const head = [["Nome", "Tipo", "Data/Hora", "Rota", "Peso/Metros", "Pombalense (€)", "Melhor Frota", "Mais Económico"]];
+    const head = [["Nome", "Tipo", "Data/Hora", "Rota", "Peso/Metros", "Pombalense (€)", "Frota 6t (€)", "Frota 9t (€)", "Frota 15t (€)", "Mais Económico"]];
     const body = sorted.map(e => [
       e.name,
       e.type === "polymers" ? "Polímeros" : "Construção",
@@ -112,7 +119,10 @@ export function ArchivePanel() {
       getRoute(e),
       getWeightOrMeters(e),
       e.pombalenseTotalCost?.toFixed(2) ?? "—",
-      e.bestFleetOption ? `${e.bestFleetOption} (${e.bestFleetCost?.toFixed(2)} €)` : "—",
+      // IMPROVED: individual fleet cost columns in PDF
+      e.fleet6tCost?.toFixed(2) ?? "—",
+      e.fleet9tCost?.toFixed(2) ?? "—",
+      e.fleet15tCost?.toFixed(2) ?? "—",
       e.cheapestOption ?? "—",
     ]);
 
@@ -181,7 +191,10 @@ export function ArchivePanel() {
                 <SortHeader label="Rota" sortKeyVal="route" />
                 <SortHeader label="Peso/Metros" sortKeyVal="weight" />
                 <SortHeader label="Pombalense (€)" sortKeyVal="pombalense" />
-                <SortHeader label="Melhor Frota" sortKeyVal="fleet" />
+                {/* IMPROVED: individual fleet cost columns */}
+                <SortHeader label="Frota 6t (€)" sortKeyVal="fleet6t" />
+                <SortHeader label="Frota 9t (€)" sortKeyVal="fleet9t" />
+                <SortHeader label="Frota 15t (€)" sortKeyVal="fleet15t" />
                 <SortHeader label="Mais Económico" sortKeyVal="cheapest" />
                 <TableHead className="w-10 py-1"></TableHead>
               </TableRow>
@@ -199,11 +212,10 @@ export function ArchivePanel() {
                   <TableCell className="text-xs py-2">{getRoute(e)}</TableCell>
                   <TableCell className="text-xs py-2">{getWeightOrMeters(e)}</TableCell>
                   <TableCell className="text-xs py-2 font-medium">{e.pombalenseTotalCost?.toFixed(2) ?? "—"} €</TableCell>
-                  <TableCell className="text-xs py-2">
-                    {e.bestFleetOption ? (
-                      <span>{e.bestFleetOption} ({e.bestFleetCost?.toFixed(2)} €)</span>
-                    ) : "—"}
-                  </TableCell>
+                  {/* IMPROVED: individual fleet cost cells */}
+                  <TableCell className="text-xs py-2">{e.fleet6tCost?.toFixed(2) ?? "—"} €</TableCell>
+                  <TableCell className="text-xs py-2">{e.fleet9tCost?.toFixed(2) ?? "—"} €</TableCell>
+                  <TableCell className="text-xs py-2">{e.fleet15tCost?.toFixed(2) ?? "—"} €</TableCell>
                   <TableCell className="text-xs py-2">
                     {e.cheapestOption === "Pombalense" ? (
                       <Badge className="text-[10px] bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 hover:bg-green-100">

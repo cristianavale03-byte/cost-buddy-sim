@@ -270,6 +270,10 @@ export function ConstructionSimulator() {
       pombalenseTotalCost: results.custoFinal,
       bestFleetOption: bestFleet?.vehicleName,
       bestFleetCost: bestFleet?.totalCost,
+      // IMPROVED: individual fleet costs for archive columns
+      fleet6tCost: results.fleetOptions.find((o: any) => o.vehicleName?.includes("6"))?.totalCost,
+      fleet9tCost: results.fleetOptions.find((o: any) => o.vehicleName?.includes("9"))?.totalCost,
+      fleet15tCost: results.fleetOptions.find((o: any) => o.vehicleName?.includes("15"))?.totalCost,
       cheapestOption: cheapestOpt,
       extraRateApplied: extraRate,
     };
