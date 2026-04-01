@@ -298,7 +298,7 @@ export function ConstructionSimulator() {
                 <TableRow>
                   <TableHead className="text-xs py-1">Nº Placas</TableHead>
                   <TableHead className="text-xs py-1">Comp. (m)</TableHead>
-                  <TableHead className="text-xs py-1">Peso (ton)</TableHead>
+                  <TableHead className="text-xs py-1">Peso Total (ton)</TableHead>
                   <TableHead className="w-10 py-1"></TableHead>
                 </TableRow>
               </TableHeader>
