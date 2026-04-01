@@ -30,23 +30,29 @@ const dimensionToCCField: Record<string, keyof CCPriceEntry> = {
   "Chapas 7 a 8m": "chapas7a8",
 };
 
-const MAX_VEHICLE_LENGTH_METERS = 13.6;
-const MAX_VEHICLE_WEIGHT_TON = 15;
+const MAX_PLATE_LENGTH = 13.6;
+const MAX_WEIGHT_REBOQUE = 25;
+
+interface FleetOptionResult extends FleetCostResult {
+  lengthExcessive: boolean;
+  weightExcessive: boolean;
+}
 
 interface ConstructionResult {
   destination: string;
   largestPlateLabel: string;
   largestPlateMeters: number;
+  ccColumnUsed: string;
   custoBase: number | null;
   custo3Eixos: number | null;
   custoReboque: number | null;
-  isExcessive: boolean;
+  pricingMode: "base" | "3eixos" | "reboque";
   numFreights: number;
   totalMeters: number;
   custoFinal: number;
   custoKm: number | null;
   custoMetro: number | null;
-  fleetOptions: FleetCostResult[];
+  fleetOptions: FleetOptionResult[];
   impossible: boolean;
   impossibleReason: string | null;
 }
@@ -73,7 +79,6 @@ function calculateConstructionCost(
   if (!entry) return null;
 
   let largestMeters = 0;
-
   for (const line of lines) {
     if (line.numPlates <= 0) continue;
     if (line.lengthMeters > largestMeters) {
@@ -95,40 +100,47 @@ function calculateConstructionCost(
 
   const totalMeters = largestMeters;
 
-  if (largestMeters > MAX_VEHICLE_LENGTH_METERS) {
+  // Global impossible: plate exceeds absolute max or weight exceeds reboque
+  if (largestMeters > MAX_PLATE_LENGTH) {
     return {
       destination, largestPlateLabel: largestLabel, largestPlateMeters: largestMeters,
-      custoBase: null, custo3Eixos: null, custoReboque: null, isExcessive: false,
-      numFreights: 0, totalMeters, custoFinal: 0, custoKm: null, custoMetro: null,
+      ccColumnUsed: largestLabel, custoBase: null, custo3Eixos: null, custoReboque: null,
+      pricingMode: "base", numFreights: 0, totalMeters, custoFinal: 0, custoKm: null, custoMetro: null,
       fleetOptions: [], impossible: true, impossibleReason: "comprimento excedente",
     };
   }
 
-  if (weightTon > MAX_VEHICLE_WEIGHT_TON) {
+  if (weightTon > MAX_WEIGHT_REBOQUE) {
     return {
       destination, largestPlateLabel: largestLabel, largestPlateMeters: largestMeters,
-      custoBase: null, custo3Eixos: null, custoReboque: null, isExcessive: false,
-      numFreights: 0, totalMeters, custoFinal: 0, custoKm: null, custoMetro: null,
-      fleetOptions: [], impossible: true, impossibleReason: "peso excedente",
+      ccColumnUsed: largestLabel, custoBase: null, custo3Eixos: null, custoReboque: null,
+      pricingMode: "base", numFreights: 0, totalMeters, custoFinal: 0, custoKm: null, custoMetro: null,
+      fleetOptions: [], impossible: true, impossibleReason: "peso excedente (> 25 ton)",
     };
   }
 
   const ccField = dimensionToCCField[largestLabel];
-  let custoBase = ccField ? getCCEntryPrice(entry, ccField) : null;
-
-  const isExcessive = largestLabel === "Chapas 7 a 8m";
+  const custoBase = ccField ? getCCEntryPrice(entry, ccField) : null;
   const custo3Eixos = getCCEntryPrice(entry, "threeAxle");
   const custoReboque = getCCEntryPrice(entry, "trailer");
 
+  // Determine pricing mode based on weight
+  let pricingMode: "base" | "3eixos" | "reboque";
   let effectiveCostPerFreight: number;
-  if (isExcessive && custo3Eixos !== null) {
-    effectiveCostPerFreight = custo3Eixos;
-  } else if (custoBase !== null) {
-    effectiveCostPerFreight = custoBase;
-  } else if (custo3Eixos !== null) {
-    effectiveCostPerFreight = custo3Eixos;
+
+  if (weightTon > 15) {
+    // 15-25 ton → reboque
+    pricingMode = "reboque";
+    effectiveCostPerFreight = custoReboque ?? custo3Eixos ?? custoBase ?? 0;
   } else {
-    effectiveCostPerFreight = 0;
+    // ≤ 15 ton → use CC column price; for 7-8m use 3 eixos
+    if (largestLabel === "Chapas 7 a 8m" && custo3Eixos !== null) {
+      pricingMode = "3eixos";
+      effectiveCostPerFreight = custo3Eixos;
+    } else {
+      pricingMode = "base";
+      effectiveCostPerFreight = custoBase ?? 0;
+    }
   }
 
   if (extraRate > 0) {
@@ -138,22 +150,26 @@ function calculateConstructionCost(
   const numFreights = manualFreights;
   const custoFinal = effectiveCostPerFreight * numFreights;
 
-  const fleetOptions = fleetVehicles.map(v => {
+  // Fleet options: check per-vehicle length and weight
+  const fleetOptions: FleetOptionResult[] = fleetVehicles.map(v => {
+    const lengthExcessive = largestMeters > v.capacityMeters;
+    const weightExcessive = weightTon > v.capacityTon;
     const result = calculateFleetCostByMeters(v, totalKm, totalMeters);
     result.numFreights = manualFreights;
     result.totalCost = v.costPerKm * totalKm * manualFreights;
     result.costPerKm2 = totalKm > 0 ? result.totalCost / totalKm : 0;
-    return result;
+    return { ...result, lengthExcessive, weightExcessive };
   });
 
   return {
     destination,
     largestPlateLabel: largestLabel,
     largestPlateMeters: largestMeters,
+    ccColumnUsed: largestLabel,
     custoBase,
-    custo3Eixos: isExcessive ? custo3Eixos : null,
-    custoReboque: isExcessive ? custoReboque : null,
-    isExcessive,
+    custo3Eixos,
+    custoReboque,
+    pricingMode,
     numFreights,
     totalMeters,
     custoFinal,
@@ -212,14 +228,18 @@ export function ConstructionSimulator() {
     setResults(result);
   };
 
+  const validFleetOptions = results && !results.impossible
+    ? results.fleetOptions.filter(o => !o.lengthExcessive && !o.weightExcessive)
+    : [];
+
   const cheapest = results && !results.impossible
-    ? findCheapest(results.custoFinal, results.fleetOptions)
+    ? findCheapest(results.custoFinal, validFleetOptions)
     : null;
 
   const chartData = results && !results.impossible
     ? [
         { name: "Pombalense", custo: Math.round(results.custoFinal * 100) / 100 },
-        ...results.fleetOptions.map(o => ({
+        ...validFleetOptions.map(o => ({
           name: o.vehicleName,
           custo: Math.round(o.totalCost * 100) / 100,
         })),
@@ -282,7 +302,7 @@ export function ConstructionSimulator() {
                 <TableRow>
                   <TableHead className="text-xs py-1">Nº Placas</TableHead>
                   <TableHead className="text-xs py-1">Comp. (m)</TableHead>
-                  <TableHead className="text-xs py-1">Peso (ton)</TableHead>
+                  <TableHead className="text-xs py-1">Peso Total (ton)</TableHead>
                   <TableHead className="w-10 py-1"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -328,12 +348,12 @@ export function ConstructionSimulator() {
             Motivo: <span className="font-bold">{results.impossibleReason}</span>
             {results.impossibleReason === "comprimento excedente" && (
               <span className="block mt-1 text-xs">
-                Placa maior ({results.largestPlateMeters}m) excede capacidade ({MAX_VEHICLE_LENGTH_METERS}m).
+                Placa maior ({results.largestPlateMeters}m) excede limite máximo ({MAX_PLATE_LENGTH}m).
               </span>
             )}
-            {results.impossibleReason === "peso excedente" && (
+            {results.impossibleReason?.includes("peso") && (
               <span className="block mt-1 text-xs">
-                Peso ({weightTon} ton) excede capacidade ({MAX_VEHICLE_WEIGHT_TON} ton).
+                Peso ({weightTon} ton) excede limite máximo ({MAX_WEIGHT_REBOQUE} ton).
               </span>
             )}
           </AlertDescription>
@@ -352,14 +372,18 @@ export function ConstructionSimulator() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-3 space-y-3">
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                   <div className="p-2 bg-muted/50 rounded-md">
                     <p className="text-[10px] text-muted-foreground">Placa Maior</p>
-                    <p className="text-xs font-semibold">{results.largestPlateLabel}</p>
+                    <p className="text-xs font-semibold">{results.totalMeters.toFixed(1)} m</p>
                   </div>
                   <div className="p-2 bg-muted/50 rounded-md">
-                    <p className="text-[10px] text-muted-foreground">Comp.</p>
-                    <p className="text-xs font-semibold">{results.totalMeters.toFixed(1)} m</p>
+                    <p className="text-[10px] text-muted-foreground">Coluna CC</p>
+                    <p className="text-xs font-semibold">{results.ccColumnUsed}</p>
+                  </div>
+                  <div className="p-2 bg-muted/50 rounded-md">
+                    <p className="text-[10px] text-muted-foreground">Peso Total</p>
+                    <p className="text-xs font-semibold">{weightTon.toFixed(1)} ton</p>
                   </div>
                   <div className="p-2 bg-muted/50 rounded-md">
                     <p className="text-[10px] text-muted-foreground">Deslocações</p>
@@ -370,21 +394,26 @@ export function ConstructionSimulator() {
                 <div className="p-3 border rounded-md space-y-1.5 text-xs">
                   <p className="font-medium">Preços CC — {results.destination}</p>
                   <div className="flex justify-between">
-                    <span>Base ({results.largestPlateLabel})</span>
-                    <span className="font-medium">{results.custoBase !== null ? `${results.custoBase.toFixed(2)} €` : "N/D"}</span>
+                    <span>Base ({results.ccColumnUsed})</span>
+                    <span className={`font-medium ${results.pricingMode === "base" ? "text-primary font-bold" : ""}`}>
+                      {results.custoBase !== null ? `${results.custoBase.toFixed(2)} €` : "N/D"}
+                      {results.pricingMode === "base" && " ✓"}
+                    </span>
                   </div>
-                  {results.isExcessive && (
-                    <>
-                      <div className="flex justify-between border-t pt-1">
-                        <span className="text-primary font-medium">3 Eixos (aplicado)</span>
-                        <span className="font-bold text-primary">{results.custo3Eixos !== null ? `${results.custo3Eixos.toFixed(2)} €` : "N/D"}</span>
-                      </div>
-                      <div className="flex justify-between text-muted-foreground">
-                        <span>Reboque (ref.)</span>
-                        <span>{results.custoReboque !== null ? `${results.custoReboque.toFixed(2)} €` : "N/D"}</span>
-                      </div>
-                    </>
-                  )}
+                  <div className="flex justify-between">
+                    <span>3 Eixos (≤ 15 ton)</span>
+                    <span className={`font-medium ${results.pricingMode === "3eixos" ? "text-primary font-bold" : ""}`}>
+                      {results.custo3Eixos !== null ? `${results.custo3Eixos.toFixed(2)} €` : "N/D"}
+                      {results.pricingMode === "3eixos" && " ✓"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Reboque (15–25 ton)</span>
+                    <span className={`font-medium ${results.pricingMode === "reboque" ? "text-primary font-bold" : ""}`}>
+                      {results.custoReboque !== null ? `${results.custoReboque.toFixed(2)} €` : "N/D"}
+                      {results.pricingMode === "reboque" && " ✓"}
+                    </span>
+                  </div>
                   <div className="flex justify-between font-bold border-t pt-1.5 text-sm">
                     <span>Custo Total</span>
                     <span>
@@ -433,28 +462,31 @@ export function ConstructionSimulator() {
                       <TableCell className="text-right text-xs py-2">{results.custoKm !== null ? results.custoKm.toFixed(2) : "—"}</TableCell>
                     </TableRow>
                     {results.fleetOptions.map(opt => {
-                      const isWeightExcessive = weightTon > opt.capacityTon;
+                      const isExcessive = opt.lengthExcessive || opt.weightExcessive;
+                      const badges: string[] = [];
+                      if (opt.lengthExcessive) badges.push("Comprimento excessivo");
+                      if (opt.weightExcessive) badges.push("Peso excessivo");
                       return (
                         <TableRow
                           key={opt.vehicleName}
-                          className={isWeightExcessive ? "bg-destructive/10" : cheapest === opt.vehicleName ? "bg-green-50 dark:bg-green-950/30" : ""}
+                          className={isExcessive ? "bg-destructive/10" : cheapest === opt.vehicleName ? "bg-green-50 dark:bg-green-950/30" : ""}
                         >
                           <TableCell className="font-medium text-xs py-2">
                             {opt.vehicleName}
-                            {isWeightExcessive && (
-                              <span className="ml-1 text-[10px] bg-destructive/20 text-destructive px-1.5 py-0.5 rounded-full">
-                                Peso excessivo
+                            {badges.map(b => (
+                              <span key={b} className="ml-1 text-[10px] bg-destructive/20 text-destructive px-1.5 py-0.5 rounded-full">
+                                {b}
                               </span>
-                            )}
-                            {!isWeightExcessive && cheapest === opt.vehicleName && (
+                            ))}
+                            {!isExcessive && cheapest === opt.vehicleName && (
                               <span className="ml-1 text-[10px] bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-1.5 py-0.5 rounded-full">
                                 Mais económico
                               </span>
                             )}
                           </TableCell>
-                          <TableCell className="text-right text-xs py-2">{isWeightExcessive ? "—" : opt.numFreights}</TableCell>
-                          <TableCell className="text-right font-bold text-xs py-2">{isWeightExcessive ? "—" : `${opt.totalCost.toFixed(2)} €`}</TableCell>
-                          <TableCell className="text-right text-xs py-2">{isWeightExcessive ? "—" : (opt.costPerKm2?.toFixed(2) ?? "—")}</TableCell>
+                          <TableCell className="text-right text-xs py-2">{isExcessive ? "—" : opt.numFreights}</TableCell>
+                          <TableCell className="text-right font-bold text-xs py-2">{isExcessive ? "—" : `${opt.totalCost.toFixed(2)} €`}</TableCell>
+                          <TableCell className="text-right text-xs py-2">{isExcessive ? "—" : (opt.costPerKm2?.toFixed(2) ?? "—")}</TableCell>
                         </TableRow>
                       );
                     })}
