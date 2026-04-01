@@ -132,14 +132,14 @@ function calculateConstructionCost(
   let effectiveCostPerFreight: number;
 
   if (weightTon > 15) {
-    // 15-25 ton → reboque
     pricingMode = "reboque";
     effectiveCostPerFreight = custoReboque ?? custo3Eixos ?? custoBase ?? 0;
-  } else if (largestMeters > 8 || largestLabel === "Chapas 7 a 8m") {
-    // > 8m or 7-8m category → 3 eixos (weight ≤ 15t)
+  } else if (largestMeters > 8) {
+    // > 8m → 3 eixos
     pricingMode = "3eixos";
     effectiveCostPerFreight = custo3Eixos ?? custoBase ?? 0;
   } else {
+    // ≤ 8m → use CC column price (including "Chapas 7 a 8m" for 7-8m)
     pricingMode = "base";
     effectiveCostPerFreight = custoBase ?? 0;
   }
