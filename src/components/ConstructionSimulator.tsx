@@ -73,15 +73,24 @@ function calculateConstructionCost(
   if (!entry) return null;
 
   let largestMeters = 0;
-  let largestLabel = dimensionOrder[0].label;
 
   for (const line of lines) {
     if (line.numPlates <= 0) continue;
-    const dim = dimensionOrder.find(d => d.label === line.dimensionLabel);
-    if (dim && dim.meters > largestMeters) {
-      largestMeters = dim.meters;
-      largestLabel = dim.label;
+    if (line.lengthMeters > largestMeters) {
+      largestMeters = line.lengthMeters;
     }
+  }
+
+  // Map length to CC price category
+  let largestLabel: string;
+  if (largestMeters <= 1.05) {
+    largestLabel = "Chapas 2×1.05m";
+  } else if (largestMeters <= 2) {
+    largestLabel = "Chapas 3×2m";
+  } else if (largestMeters <= 6) {
+    largestLabel = "Chapas 4 a 6m";
+  } else {
+    largestLabel = "Chapas 7 a 8m";
   }
 
   const totalMeters = largestMeters;
@@ -160,7 +169,7 @@ export function ConstructionSimulator() {
   const [destination, setDestination] = useState("");
   const [totalKm, setTotalKm] = useState<number>(0);
   const [lines, setLines] = useState<ConstructionLine[]>([
-    { id: crypto.randomUUID(), numPlates: 0, dimensionLabel: "Chapas 4 a 6m", lengthMeters: 6, weightTon: 0 },
+    { id: crypto.randomUUID(), numPlates: 0, dimensionLabel: "", lengthMeters: 0, weightTon: 0 },
   ]);
   const weightTon = lines.reduce((sum, l) => sum + (l.weightTon || 0), 0);
   const [numFreightsManual, setNumFreightsManual] = useState<number>(0);
@@ -171,7 +180,7 @@ export function ConstructionSimulator() {
   const totalMeters = largestPlateMeters;
 
   const addLine = () => {
-    setLines([...lines, { id: crypto.randomUUID(), numPlates: 0, dimensionLabel: "Chapas 4 a 6m", lengthMeters: 6, weightTon: 0 }]);
+    setLines([...lines, { id: crypto.randomUUID(), numPlates: 0, dimensionLabel: "", lengthMeters: 0, weightTon: 0 }]);
   };
 
   const removeLine = (id: string) => {
@@ -191,6 +200,10 @@ export function ConstructionSimulator() {
 
   const updateWeight = (id: string, weight: number) => {
     setLines(lines.map(l => (l.id === id ? { ...l, weightTon: weight } : l)));
+  };
+
+  const updateLength = (id: string, length: number) => {
+    setLines(lines.map(l => (l.id === id ? { ...l, lengthMeters: length } : l)));
   };
 
   const simulate = () => {
@@ -268,7 +281,6 @@ export function ConstructionSimulator() {
               <TableHeader>
                 <TableRow>
                   <TableHead className="text-xs py-1">Nº Placas</TableHead>
-                  <TableHead className="text-xs py-1">Tipo / Comprimento</TableHead>
                   <TableHead className="text-xs py-1">Comp. (m)</TableHead>
                   <TableHead className="text-xs py-1">Peso (ton)</TableHead>
                   <TableHead className="w-10 py-1"></TableHead>
@@ -281,18 +293,10 @@ export function ConstructionSimulator() {
                       <Input className="h-8" type="number" value={line.numPlates || ""} onChange={e => updatePlates(line.id, Number(e.target.value))} placeholder="0" />
                     </TableCell>
                     <TableCell className="py-1">
-                      <Select value={line.dimensionLabel} onValueChange={v => updateDimension(line.id, v)}>
-                        <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {dimensionTypes.map(d => (
-                            <SelectItem key={d.label} value={d.label}>{d.label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <Input className="h-8" type="number" value={line.lengthMeters || ""} onChange={e => updateLength(line.id, Number(e.target.value))} placeholder="0.0" step="0.1" />
                     </TableCell>
-                    <TableCell className="text-xs text-muted-foreground py-1">{line.lengthMeters} m</TableCell>
                     <TableCell className="py-1">
-                      <Input className="h-8" type="number" value={line.weightTon || ""} onChange={e => updateWeight(line.id, Number(e.target.value))} placeholder="0" step="0.1" />
+                      <Input className="h-8" type="number" value={line.weightTon || ""} onChange={e => updateWeight(line.id, Number(e.target.value))} placeholder="0.0" step="0.1" />
                     </TableCell>
                     <TableCell className="py-1">
                       <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => removeLine(line.id)} disabled={lines.length === 1}>
