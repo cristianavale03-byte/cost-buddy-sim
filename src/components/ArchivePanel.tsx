@@ -10,7 +10,8 @@ import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
-type SortKey = "name" | "type" | "savedAt" | "route" | "weight" | "pombalense" | "fleet" | "cheapest";
+// IMPROVED: added individual fleet cost sort keys
+type SortKey = "name" | "type" | "savedAt" | "route" | "weight" | "pombalense" | "fleet6t" | "fleet9t" | "fleet15t" | "cheapest";
 
 function formatDate(iso: string) {
   const d = new Date(iso);
