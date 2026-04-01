@@ -73,15 +73,24 @@ function calculateConstructionCost(
   if (!entry) return null;
 
   let largestMeters = 0;
-  let largestLabel = dimensionOrder[0].label;
 
   for (const line of lines) {
     if (line.numPlates <= 0) continue;
-    const dim = dimensionOrder.find(d => d.label === line.dimensionLabel);
-    if (dim && dim.meters > largestMeters) {
-      largestMeters = dim.meters;
-      largestLabel = dim.label;
+    if (line.lengthMeters > largestMeters) {
+      largestMeters = line.lengthMeters;
     }
+  }
+
+  // Map length to CC price category
+  let largestLabel: string;
+  if (largestMeters <= 1.05) {
+    largestLabel = "Chapas 2×1.05m";
+  } else if (largestMeters <= 2) {
+    largestLabel = "Chapas 3×2m";
+  } else if (largestMeters <= 6) {
+    largestLabel = "Chapas 4 a 6m";
+  } else {
+    largestLabel = "Chapas 7 a 8m";
   }
 
   const totalMeters = largestMeters;
