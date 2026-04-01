@@ -79,10 +79,25 @@ const SimulatorStateContext = createContext<SimulatorStateContextType | null>(nu
 export function SimulatorStateProvider({ children }: { children: ReactNode }) {
   const [polymer, setPolymer] = useState<PolymerState>(defaultPolymer);
   const [construction, setConstruction] = useState<ConstructionState>(defaultConstruction);
-  const [savedEstimates, setSavedEstimates] = useState<SavedEstimate[]>([]);
+  // IMPROVED: persist savedEstimates in localStorage across sessions
+  const [savedEstimates, setSavedEstimates] = useState<SavedEstimate[]>(() => {
+    try {
+      const stored = localStorage.getItem("agi-saved-estimates");
+      return stored ? JSON.parse(stored) : [];
+    } catch { return []; }
+  });
+
+  // IMPROVED: sync savedEstimates to localStorage on every change
+  const setSavedEstimatesAndPersist: React.Dispatch<React.SetStateAction<SavedEstimate[]>> = (action) => {
+    setSavedEstimates(prev => {
+      const next = typeof action === "function" ? action(prev) : action;
+      try { localStorage.setItem("agi-saved-estimates", JSON.stringify(next)); } catch {}
+      return next;
+    });
+  };
 
   return (
-    <SimulatorStateContext.Provider value={{ polymer, setPolymer, construction, setConstruction, savedEstimates, setSavedEstimates }}>
+    <SimulatorStateContext.Provider value={{ polymer, setPolymer, construction, setConstruction, savedEstimates, setSavedEstimates: setSavedEstimatesAndPersist }}>
       {children}
     </SimulatorStateContext.Provider>
   );
