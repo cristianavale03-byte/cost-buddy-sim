@@ -13,7 +13,6 @@ import type { ConstructionLine } from "@/utils/costCalculations";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { usePombalenseExtraRate } from "@/hooks/usePombalenseExtraRate";
 
-// Only destinations from CC table
 const ccDestinations = ccPrices.map(p => p.destination).sort();
 
 const dimensionOrder = [
@@ -86,7 +85,6 @@ function calculateConstructionCost(
 
   const totalMeters = largestMeters;
 
-  // Feasibility check
   if (largestMeters > MAX_VEHICLE_LENGTH_METERS) {
     return {
       destination, largestPlateLabel: largestLabel, largestPlateMeters: largestMeters,
@@ -123,7 +121,6 @@ function calculateConstructionCost(
     effectiveCostPerFreight = 0;
   }
 
-  // IMPROVED: apply extra rate to plate cost (not deliveries)
   if (extraRate > 0) {
     effectiveCostPerFreight = effectiveCostPerFreight * (1 + extraRate / 100);
   }
@@ -131,7 +128,6 @@ function calculateConstructionCost(
   const numFreights = manualFreights;
   const custoFinal = effectiveCostPerFreight * numFreights;
 
-  // IMPROVED: apply manualFreights to fleet options, recalculate totalCost = costPerKm * totalKm * manualFreights
   const fleetOptions = fleetVehicles.map(v => {
     const result = calculateFleetCostByMeters(v, totalKm, totalMeters);
     result.numFreights = manualFreights;
@@ -166,7 +162,6 @@ export function ConstructionSimulator() {
   const [lines, setLines] = useState<ConstructionLine[]>([
     { id: crypto.randomUUID(), numPlates: 0, dimensionLabel: "Chapas 4 a 6m", lengthMeters: 6 },
   ]);
-  // IMPROVED: default deslocações = 0
   const [numFreightsManual, setNumFreightsManual] = useState<number>(0);
   const [results, setResults] = useState<ConstructionResult | null>(null);
   const { rate: extraRate } = usePombalenseExtraRate();
@@ -214,23 +209,24 @@ export function ConstructionSimulator() {
     : [];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
+      {/* Combined inputs card */}
       <Card>
-        <CardHeader>
+        <CardHeader className="pb-3">
           <CardTitle className="text-lg">Dados do Transporte</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            <div className="space-y-2">
-              <Label className="flex items-center gap-1">
+        <CardContent className="space-y-3">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs flex items-center gap-1">
                 Origem <Lock className="h-3 w-3 text-muted-foreground" />
               </Label>
-              <Input value="Espinho" disabled className="bg-muted font-medium" />
+              <Input className="h-9" value="Espinho" disabled />
             </div>
-            <div className="space-y-2">
-              <Label>Destino</Label>
+            <div className="space-y-1">
+              <Label className="text-xs">Destino</Label>
               <Select value={destination} onValueChange={setDestination}>
-                <SelectTrigger><SelectValue placeholder="Selecionar destino" /></SelectTrigger>
+                <SelectTrigger className="h-9"><SelectValue placeholder="Selecionar destino" /></SelectTrigger>
                 <SelectContent>
                   {ccDestinations.map(d => (
                     <SelectItem key={d} value={d}>{d}</SelectItem>
@@ -238,100 +234,74 @@ export function ConstructionSimulator() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              {/* IMPROVED: label changed to ida + volta */}
-              <Label>Km Totais (ida + volta)</Label>
-              <Input
-                type="number"
-                value={totalKm || ""}
-                onChange={e => setTotalKm(Number(e.target.value))}
-                placeholder="Ex: 360"
-              />
+            <div className="space-y-1">
+              <Label className="text-xs">Km Totais (ida + volta)</Label>
+              <Input className="h-9" type="number" value={totalKm || ""} onChange={e => setTotalKm(Number(e.target.value))} placeholder="Ex: 360" />
             </div>
-            <div className="space-y-2">
-              <Label>Peso Total (ton)</Label>
-              <Input
-                type="number"
-                value={weightTon || ""}
-                onChange={e => setWeightTon(Number(e.target.value))}
-                placeholder="Ex: 5"
-                step="0.1"
-              />
+            <div className="space-y-1">
+              <Label className="text-xs">Peso Total (ton)</Label>
+              <Input className="h-9" type="number" value={weightTon || ""} onChange={e => setWeightTon(Number(e.target.value))} placeholder="Ex: 5" step="0.1" />
             </div>
-            <div className="space-y-2">
-              {/* IMPROVED: renamed from "Fretes" to "Deslocações", default 0 */}
-              <Label>Nº de Deslocações</Label>
-              <Input
-                type="number"
-                value={numFreightsManual}
-                onChange={e => setNumFreightsManual(Math.max(0, Number(e.target.value)))}
-                placeholder="0"
-                min={0}
-              />
-              {/* IMPROVED: info note about extra delivery cost */}
-              <p className="text-xs text-muted-foreground flex items-center gap-1">
-                <Info className="h-3 w-3" /> Cada deslocação é cobrada a 25 € pela Pombalense
+            <div className="space-y-1">
+              <Label className="text-xs">Nº de Deslocações</Label>
+              <Input className="h-9" type="number" value={numFreightsManual} onChange={e => setNumFreightsManual(Math.max(0, Number(e.target.value)))} placeholder="0" min={0} />
+              <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                <Info className="h-3 w-3 shrink-0" /> 25 €/deslocação (Pombalense)
               </p>
             </div>
           </div>
-        </CardContent>
-      </Card>
 
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-lg">Placas / Chapas</CardTitle>
-          <Button size="sm" variant="outline" onClick={addLine}>
-            <Plus className="h-4 w-4 mr-1" /> Adicionar
-          </Button>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nº Placas</TableHead>
-                <TableHead>Tipo / Comprimento</TableHead>
-                <TableHead>Comprimento (m)</TableHead>
-                <TableHead className="w-12"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {lines.map(line => (
-                <TableRow key={line.id}>
-                  <TableCell>
-                    <Input
-                      type="number"
-                      value={line.numPlates || ""}
-                      onChange={e => updatePlates(line.id, Number(e.target.value))}
-                      placeholder="0"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Select value={line.dimensionLabel} onValueChange={v => updateDimension(line.id, v)}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {dimensionTypes.map(d => (
-                          <SelectItem key={d.label} value={d.label}>{d.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">{line.lengthMeters} m</TableCell>
-                  <TableCell>
-                    <Button size="icon" variant="ghost" onClick={() => removeLine(line.id)} disabled={lines.length === 1}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </TableCell>
+          {/* Plates inline */}
+          <div className="border-t pt-3">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium">Placas / Chapas</span>
+              <Button size="sm" variant="outline" className="h-7 text-xs" onClick={addLine}>
+                <Plus className="h-3 w-3 mr-1" /> Adicionar
+              </Button>
+            </div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-xs py-1">Nº Placas</TableHead>
+                  <TableHead className="text-xs py-1">Tipo / Comprimento</TableHead>
+                  <TableHead className="text-xs py-1">Comp. (m)</TableHead>
+                  <TableHead className="w-10 py-1"></TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-          <div className="mt-4 flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">
-              Comprimento Total (placa maior): <span className="font-bold text-foreground">{totalMeters.toFixed(1)} m</span>
-            </p>
-            <Button onClick={simulate} disabled={!destination}>
-              Simular Custos
-            </Button>
+              </TableHeader>
+              <TableBody>
+                {lines.map(line => (
+                  <TableRow key={line.id}>
+                    <TableCell className="py-1">
+                      <Input className="h-8" type="number" value={line.numPlates || ""} onChange={e => updatePlates(line.id, Number(e.target.value))} placeholder="0" />
+                    </TableCell>
+                    <TableCell className="py-1">
+                      <Select value={line.dimensionLabel} onValueChange={v => updateDimension(line.id, v)}>
+                        <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {dimensionTypes.map(d => (
+                            <SelectItem key={d.label} value={d.label}>{d.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground py-1">{line.lengthMeters} m</TableCell>
+                    <TableCell className="py-1">
+                      <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => removeLine(line.id)} disabled={lines.length === 1}>
+                        <Trash2 className="h-3 w-3 text-destructive" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+            <div className="mt-2 flex items-center justify-between">
+              <p className="text-xs text-muted-foreground">
+                Placa Maior: <span className="font-bold text-foreground">{totalMeters.toFixed(1)} m</span>
+              </p>
+              <Button size="sm" onClick={simulate} disabled={!destination}>
+                Simular Custos
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -343,13 +313,13 @@ export function ConstructionSimulator() {
           <AlertDescription>
             Motivo: <span className="font-bold">{results.impossibleReason}</span>
             {results.impossibleReason === "comprimento excedente" && (
-              <span className="block mt-1 text-sm">
-                A placa maior ({results.largestPlateMeters}m) excede a capacidade máxima do veículo ({MAX_VEHICLE_LENGTH_METERS}m).
+              <span className="block mt-1 text-xs">
+                Placa maior ({results.largestPlateMeters}m) excede capacidade ({MAX_VEHICLE_LENGTH_METERS}m).
               </span>
             )}
             {results.impossibleReason === "peso excedente" && (
-              <span className="block mt-1 text-sm">
-                O peso total ({weightTon} ton) excede a capacidade máxima do veículo ({MAX_VEHICLE_WEIGHT_TON} ton).
+              <span className="block mt-1 text-xs">
+                Peso ({weightTon} ton) excede capacidade ({MAX_VEHICLE_WEIGHT_TON} ton).
               </span>
             )}
           </AlertDescription>
@@ -358,149 +328,127 @@ export function ConstructionSimulator() {
 
       {results && !results.impossible && (
         <>
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <TrendingDown className="h-5 w-5" />
-                Resultados — Subcontratação (Pombalense)
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                <div className="p-3 bg-muted/50 rounded-md">
-                  <p className="text-xs text-muted-foreground">Origem</p>
-                  <p className="font-semibold">Espinho</p>
-                </div>
-                <div className="p-3 bg-muted/50 rounded-md">
-                  <p className="text-xs text-muted-foreground">Destino</p>
-                  <p className="font-semibold">{results.destination}</p>
-                </div>
-                <div className="p-3 bg-muted/50 rounded-md">
-                  <p className="text-xs text-muted-foreground">Placa Maior</p>
-                  <p className="font-semibold">{results.largestPlateLabel} ({results.largestPlateMeters}m)</p>
-                </div>
-                <div className="p-3 bg-muted/50 rounded-md">
-                  <p className="text-xs text-muted-foreground">Total Metros</p>
-                  <p className="font-semibold">{results.totalMeters.toFixed(1)} m</p>
-                </div>
-                <div className="p-3 bg-muted/50 rounded-md">
-                  {/* IMPROVED: renamed to "Deslocações" */}
-                  <p className="text-xs text-muted-foreground">Nº de Deslocações</p>
-                  <p className="font-semibold">{results.numFreights}</p>
-                </div>
-              </div>
-
-              <div className="p-4 border rounded-md space-y-2">
-                <p className="font-medium text-sm">Detalhe de Preços CC — {results.destination}</p>
-                
-                <div className="flex justify-between text-sm">
-                  <span>Custo Base ({results.largestPlateLabel})</span>
-                  <span className="font-medium">
-                    {results.custoBase !== null ? `${results.custoBase.toFixed(2)} €` : "N/D"}
-                  </span>
+          {/* Pombalense detail + comparison side by side */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <TrendingDown className="h-4 w-4" />
+                  Subcontratação (Pombalense)
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-3 space-y-3">
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="p-2 bg-muted/50 rounded-md">
+                    <p className="text-[10px] text-muted-foreground">Placa Maior</p>
+                    <p className="text-xs font-semibold">{results.largestPlateLabel}</p>
+                  </div>
+                  <div className="p-2 bg-muted/50 rounded-md">
+                    <p className="text-[10px] text-muted-foreground">Comp.</p>
+                    <p className="text-xs font-semibold">{results.totalMeters.toFixed(1)} m</p>
+                  </div>
+                  <div className="p-2 bg-muted/50 rounded-md">
+                    <p className="text-[10px] text-muted-foreground">Deslocações</p>
+                    <p className="text-xs font-semibold">{results.numFreights}</p>
+                  </div>
                 </div>
 
-                {results.isExcessive && (
-                  <>
-                    <div className="flex justify-between text-sm border-t pt-1">
-                      <span className="text-primary font-medium">Custo 3 Eixos (aplicado)</span>
-                      <span className="font-bold text-primary">
-                        {results.custo3Eixos !== null ? `${results.custo3Eixos.toFixed(2)} €` : "N/D"}
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-sm text-muted-foreground">
-                      <span>Custo Reboque (referência)</span>
-                      <span>{results.custoReboque !== null ? `${results.custoReboque.toFixed(2)} €` : "N/D"}</span>
-                    </div>
-                  </>
-                )}
-
-                <div className="flex justify-between text-sm border-t pt-1">
-                  {/* IMPROVED: renamed to "Deslocações" */}
-                  <span>Nº de Deslocações</span>
-                  <span className="font-medium">{results.numFreights}</span>
-                </div>
-
-                <div className="flex justify-between text-sm font-bold border-t pt-2 text-lg">
-                  <span>Custo Total Final</span>
-                  <span>
-                    {results.custoFinal.toFixed(2)} €
-                    {/* IMPROVED: show extra rate badge */}
-                    {extraRate > 0 && (
-                      <span className="ml-2 text-xs font-normal bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200 px-2 py-0.5 rounded-full">
-                        +{extraRate}% aplicado
-                      </span>
-                    )}
-                  </span>
-                </div>
-
-                <div className="flex gap-6 text-xs text-muted-foreground pt-1">
-                  <span>€/km: {results.custoKm !== null ? results.custoKm.toFixed(2) : "—"}</span>
-                  <span>€/metro (placa maior): {results.custoMetro !== null ? results.custoMetro.toFixed(2) : "—"}</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Comparação: Subcontratação vs Frota Própria</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Opção</TableHead>
-                    {/* IMPROVED: renamed column */}
-                    <TableHead className="text-right">Nº Deslocações</TableHead>
-                    <TableHead className="text-right">Custo Total (€)</TableHead>
-                    <TableHead className="text-right">€/km</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  <TableRow className={cheapest === "Pombalense" ? "bg-green-50 dark:bg-green-950/30" : ""}>
-                    <TableCell className="font-medium">
-                      Pombalense (Subcontratação)
-                      {cheapest === "Pombalense" && (
-                        <span className="ml-2 text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-2 py-0.5 rounded-full">
-                          Mais económico
+                <div className="p-3 border rounded-md space-y-1.5 text-xs">
+                  <p className="font-medium">Preços CC — {results.destination}</p>
+                  <div className="flex justify-between">
+                    <span>Base ({results.largestPlateLabel})</span>
+                    <span className="font-medium">{results.custoBase !== null ? `${results.custoBase.toFixed(2)} €` : "N/D"}</span>
+                  </div>
+                  {results.isExcessive && (
+                    <>
+                      <div className="flex justify-between border-t pt-1">
+                        <span className="text-primary font-medium">3 Eixos (aplicado)</span>
+                        <span className="font-bold text-primary">{results.custo3Eixos !== null ? `${results.custo3Eixos.toFixed(2)} €` : "N/D"}</span>
+                      </div>
+                      <div className="flex justify-between text-muted-foreground">
+                        <span>Reboque (ref.)</span>
+                        <span>{results.custoReboque !== null ? `${results.custoReboque.toFixed(2)} €` : "N/D"}</span>
+                      </div>
+                    </>
+                  )}
+                  <div className="flex justify-between font-bold border-t pt-1.5 text-sm">
+                    <span>Custo Total</span>
+                    <span>
+                      {results.custoFinal.toFixed(2)} €
+                      {extraRate > 0 && (
+                        <span className="ml-1 text-[10px] font-normal bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200 px-1.5 py-0.5 rounded-full">
+                          +{extraRate}%
                         </span>
                       )}
-                    </TableCell>
-                    <TableCell className="text-right">{results.numFreights}</TableCell>
-                    <TableCell className="text-right font-bold">{results.custoFinal.toFixed(2)} €</TableCell>
-                    <TableCell className="text-right">{results.custoKm !== null ? results.custoKm.toFixed(2) : "—"}</TableCell>
-                  </TableRow>
-                  {results.fleetOptions.map(opt => {
-                    const isWeightExcessive = weightTon > opt.capacityTon;
-                    return (
-                      <TableRow
-                        key={opt.vehicleName}
-                        className={isWeightExcessive ? "bg-destructive/10" : cheapest === opt.vehicleName ? "bg-green-50 dark:bg-green-950/30" : ""}
-                      >
-                        <TableCell className="font-medium">
-                          {opt.vehicleName}
-                          {isWeightExcessive && (
-                            <span className="ml-2 text-xs bg-destructive/20 text-destructive px-2 py-0.5 rounded-full">
-                              Peso excessivo
-                            </span>
-                          )}
-                          {!isWeightExcessive && cheapest === opt.vehicleName && (
-                            <span className="ml-2 text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-2 py-0.5 rounded-full">
-                              Mais económico
-                            </span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">{isWeightExcessive ? "—" : opt.numFreights}</TableCell>
-                        <TableCell className="text-right font-bold">{isWeightExcessive ? "—" : `${opt.totalCost.toFixed(2)} €`}</TableCell>
-                        <TableCell className="text-right">{isWeightExcessive ? "—" : (opt.costPerKm2?.toFixed(2) ?? "—")}</TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+                    </span>
+                  </div>
+                  <div className="flex gap-4 text-[10px] text-muted-foreground">
+                    <span>€/km: {results.custoKm !== null ? results.custoKm.toFixed(2) : "—"}</span>
+                    <span>€/m: {results.custoMetro !== null ? results.custoMetro.toFixed(2) : "—"}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Comparação: Sub. vs Frota</CardTitle>
+              </CardHeader>
+              <CardContent className="p-3">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-xs">Opção</TableHead>
+                      <TableHead className="text-xs text-right">Desloc.</TableHead>
+                      <TableHead className="text-xs text-right">Custo Total</TableHead>
+                      <TableHead className="text-xs text-right">€/km</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    <TableRow className={cheapest === "Pombalense" ? "bg-green-50 dark:bg-green-950/30" : ""}>
+                      <TableCell className="font-medium text-xs py-2">
+                        Pombalense
+                        {cheapest === "Pombalense" && (
+                          <span className="ml-1 text-[10px] bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-1.5 py-0.5 rounded-full">
+                            Mais económico
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right text-xs py-2">{results.numFreights}</TableCell>
+                      <TableCell className="text-right font-bold text-xs py-2">{results.custoFinal.toFixed(2)} €</TableCell>
+                      <TableCell className="text-right text-xs py-2">{results.custoKm !== null ? results.custoKm.toFixed(2) : "—"}</TableCell>
+                    </TableRow>
+                    {results.fleetOptions.map(opt => {
+                      const isWeightExcessive = weightTon > opt.capacityTon;
+                      return (
+                        <TableRow
+                          key={opt.vehicleName}
+                          className={isWeightExcessive ? "bg-destructive/10" : cheapest === opt.vehicleName ? "bg-green-50 dark:bg-green-950/30" : ""}
+                        >
+                          <TableCell className="font-medium text-xs py-2">
+                            {opt.vehicleName}
+                            {isWeightExcessive && (
+                              <span className="ml-1 text-[10px] bg-destructive/20 text-destructive px-1.5 py-0.5 rounded-full">
+                                Peso excessivo
+                              </span>
+                            )}
+                            {!isWeightExcessive && cheapest === opt.vehicleName && (
+                              <span className="ml-1 text-[10px] bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-1.5 py-0.5 rounded-full">
+                                Mais económico
+                              </span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right text-xs py-2">{isWeightExcessive ? "—" : opt.numFreights}</TableCell>
+                          <TableCell className="text-right font-bold text-xs py-2">{isWeightExcessive ? "—" : `${opt.totalCost.toFixed(2)} €`}</TableCell>
+                          <TableCell className="text-right text-xs py-2">{isWeightExcessive ? "—" : (opt.costPerKm2?.toFixed(2) ?? "—")}</TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </div>
 
           <CostComparisonChart data={chartData} title="Comparação de Custos — Construção" />
         </>

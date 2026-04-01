@@ -20,7 +20,6 @@ export function PolymerSimulator() {
   const [origin, setOrigin] = useState("");
   const [destination, setDestination] = useState("");
   const [totalKm, setTotalKm] = useState<number>(0);
-  // IMPROVED: default deslocações = 0
   const [numFreightsManual, setNumFreightsManual] = useState<number>(0);
   const [cargoLines, setCargoLines] = useState<CargoLine[]>([
     { id: crypto.randomUUID(), client: "", weightTon: 0 },
@@ -30,7 +29,6 @@ export function PolymerSimulator() {
 
   const totalWeight = cargoLines.reduce((sum, l) => sum + l.weightTon, 0);
 
-  // IMPROVED: filter destinations by selected origin's cfZones
   const originId = origin.includes("Gulpilhares") || origin.includes("Espinho") ? 1
     : origin.includes("Meirinhas") ? 2
     : origin.includes("Maia") ? 3
@@ -53,7 +51,6 @@ export function PolymerSimulator() {
     setCargoLines(cargoLines.map((l) => (l.id === id ? { ...l, [field]: value } : l)));
   };
 
-  // IMPROVED: reset destination when origin changes
   const handleOriginChange = (val: string) => {
     setOrigin(val);
     setDestination("");
@@ -62,10 +59,8 @@ export function PolymerSimulator() {
 
   const simulate = () => {
     if (totalKm <= 0 || totalWeight <= 0) return;
-    // IMPROVED: deslocações only affect Pombalense delivery cost (25€ each), not fleet
     const result = calculateAllPolymerOptions(totalWeight, totalKm, origin, destination, numFreightsManual);
     
-    // IMPROVED: apply extra rate to weightCost only, not deliveryCost
     if (extraRate > 0) {
       result.pombalense.weightCost = result.pombalense.weightCost * (1 + extraRate / 100);
       result.pombalense.totalCost = result.pombalense.weightCost + result.pombalense.deliveryCost;
@@ -74,14 +69,12 @@ export function PolymerSimulator() {
     setResults(result);
   };
 
-  // IMPROVED: if findCFZone returns null, pombalense has no valid cost
   const zoneFound = results ? findCFZone(origin, destination) !== null : true;
 
   const cheapest = results
     ? findCheapest(results.pombalense.totalCost, results.fleetOptions)
     : null;
 
-  // IMPROVED: exclude vehicles with excessive weight from chart
   const chartData = results
     ? [
         ...(zoneFound ? [{ name: "Pombalense", custo: Math.round(results.pombalense.totalCost * 100) / 100 }] : []),
@@ -95,19 +88,18 @@ export function PolymerSimulator() {
     : [];
 
   return (
-    <div className="space-y-6">
-      {/* Inputs */}
+    <div className="space-y-4">
+      {/* Combined inputs + cargo in one card */}
       <Card>
-        <CardHeader>
+        <CardHeader className="pb-3">
           <CardTitle className="text-lg">Dados do Transporte</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="space-y-2">
-              <Label>Origem</Label>
-              {/* IMPROVED: origin change resets destination */}
+        <CardContent className="space-y-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs">Origem</Label>
               <Select value={origin} onValueChange={handleOriginChange}>
-                <SelectTrigger><SelectValue placeholder="Selecionar origem" /></SelectTrigger>
+                <SelectTrigger className="h-9"><SelectValue placeholder="Selecionar origem" /></SelectTrigger>
                 <SelectContent>
                   {origins.map((o) => (
                     <SelectItem key={o.id} value={o.name}>{o.name}</SelectItem>
@@ -115,11 +107,10 @@ export function PolymerSimulator() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label>Destino</Label>
-              {/* IMPROVED: destinations filtered by origin; disabled if no origin */}
+            <div className="space-y-1">
+              <Label className="text-xs">Destino</Label>
               <Select value={destination} onValueChange={setDestination} disabled={!origin}>
-                <SelectTrigger>
+                <SelectTrigger className="h-9">
                   <SelectValue placeholder={origin ? "Selecionar destino" : "Seleciona primeiro a origem"} />
                 </SelectTrigger>
                 <SelectContent>
@@ -129,92 +120,92 @@ export function PolymerSimulator() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              {/* IMPROVED: label changed to ida + volta */}
-              <Label>Km Totais (ida + volta)</Label>
+            <div className="space-y-1">
+              <Label className="text-xs">Km Totais (ida + volta)</Label>
               <Input
+                className="h-9"
                 type="number"
                 value={totalKm || ""}
                 onChange={(e) => setTotalKm(Number(e.target.value))}
                 placeholder="Ex: 300"
               />
             </div>
-            <div className="space-y-2">
-              {/* IMPROVED: renamed from "Fretes" to "Deslocações", default 0 */}
-              <Label>Nº de Deslocações</Label>
+            <div className="space-y-1">
+              <Label className="text-xs">Nº de Deslocações</Label>
               <Input
+                className="h-9"
                 type="number"
                 value={numFreightsManual}
                 onChange={(e) => setNumFreightsManual(Math.max(0, Number(e.target.value)))}
                 placeholder="0"
                 min={0}
               />
-              {/* IMPROVED: info note about extra delivery cost */}
-              <p className="text-xs text-muted-foreground flex items-center gap-1">
-                <Info className="h-3 w-3" /> Cada deslocação é cobrada a 25 € pela Pombalense
+              <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                <Info className="h-3 w-3 shrink-0" /> 25 €/deslocação (Pombalense)
               </p>
             </div>
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Cargo lines */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-lg">Cargas</CardTitle>
-          <Button size="sm" variant="outline" onClick={addLine}>
-            <Plus className="h-4 w-4 mr-1" /> Adicionar
-          </Button>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Cliente</TableHead>
-                <TableHead>Peso Bruto (ton)</TableHead>
-                <TableHead className="w-12"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {cargoLines.map((line) => (
-                <TableRow key={line.id}>
-                  <TableCell>
-                    <Input
-                      value={line.client}
-                      onChange={(e) => updateLine(line.id, "client", e.target.value)}
-                      placeholder="Nome do cliente"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Input
-                      type="number"
-                      step="0.1"
-                      value={line.weightTon || ""}
-                      onChange={(e) => updateLine(line.id, "weightTon", Number(e.target.value))}
-                      placeholder="0.0"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => removeLine(line.id)}
-                      disabled={cargoLines.length === 1}
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </TableCell>
+          {/* Cargo lines inline */}
+          <div className="border-t pt-3">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium">Cargas</span>
+              <Button size="sm" variant="outline" className="h-7 text-xs" onClick={addLine}>
+                <Plus className="h-3 w-3 mr-1" /> Adicionar
+              </Button>
+            </div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-xs py-1">Cliente</TableHead>
+                  <TableHead className="text-xs py-1">Peso Bruto (ton)</TableHead>
+                  <TableHead className="w-10 py-1"></TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-          <div className="mt-4 flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">
-              Carga Total: <span className="font-bold text-foreground">{totalWeight.toFixed(1)} ton</span> ({(totalWeight * 1000).toFixed(0)} kg)
-            </p>
-            <Button onClick={simulate} disabled={totalKm <= 0 || totalWeight <= 0}>
-              Simular Custos
-            </Button>
+              </TableHeader>
+              <TableBody>
+                {cargoLines.map((line) => (
+                  <TableRow key={line.id}>
+                    <TableCell className="py-1">
+                      <Input
+                        className="h-8"
+                        value={line.client}
+                        onChange={(e) => updateLine(line.id, "client", e.target.value)}
+                        placeholder="Nome do cliente"
+                      />
+                    </TableCell>
+                    <TableCell className="py-1">
+                      <Input
+                        className="h-8"
+                        type="number"
+                        step="0.1"
+                        value={line.weightTon || ""}
+                        onChange={(e) => updateLine(line.id, "weightTon", Number(e.target.value))}
+                        placeholder="0.0"
+                      />
+                    </TableCell>
+                    <TableCell className="py-1">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7"
+                        onClick={() => removeLine(line.id)}
+                        disabled={cargoLines.length === 1}
+                      >
+                        <Trash2 className="h-3 w-3 text-destructive" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+            <div className="mt-2 flex items-center justify-between">
+              <p className="text-xs text-muted-foreground">
+                Carga Total: <span className="font-bold text-foreground">{totalWeight.toFixed(1)} ton</span> ({(totalWeight * 1000).toFixed(0)} kg)
+              </p>
+              <Button size="sm" onClick={simulate} disabled={totalKm <= 0 || totalWeight <= 0}>
+                Simular Custos
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -223,165 +214,161 @@ export function PolymerSimulator() {
       {results && (
         <>
           {results.pombalense.zoneName && (
-            <div className="text-sm text-muted-foreground px-1">
-              Tabela Pombalense aplicada: <span className="font-medium text-foreground">{results.pombalense.zoneName}</span>
+            <div className="text-xs text-muted-foreground px-1">
+              Tabela Pombalense: <span className="font-medium text-foreground">{results.pombalense.zoneName}</span>
             </div>
           )}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <TrendingDown className="h-5 w-5" />
-                Resultados da Simulação
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[45%]">Opção</TableHead>
-                    {/* IMPROVED: renamed column header */}
-                    <TableHead className="text-right">Nº Deslocações</TableHead>
-                    <TableHead className="text-right">Custo Total (€)</TableHead>
-                    <TableHead className="text-right">€/ton</TableHead>
-                    <TableHead className="text-right">€/km</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {/* IMPROVED: show "—" if no zone found, show cost breakdown */}
-                  <TableRow className={zoneFound && cheapest === "Pombalense" ? "bg-green-50 dark:bg-green-950/30" : ""}>
-                    <TableCell className="font-medium">
-                      <div>
-                        Pombalense (Subcontratação)
-                        {zoneFound && cheapest === "Pombalense" && (
-                          <span className="ml-2 text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-2 py-0.5 rounded-full">
-                            Mais económico
-                          </span>
-                        )}
-                        {/* IMPROVED: show extra rate badge */}
-                        {zoneFound && extraRate > 0 && (
-                          <span className="ml-2 text-xs bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200 px-2 py-0.5 rounded-full">
-                            +{extraRate}% aplicado
-                          </span>
-                        )}
-                      </div>
-                      {/* IMPROVED: dynamic cost breakdown based on optionUsed */}
-                      {zoneFound && (
-                        <div className="mt-1">
-                          {results.heavyLoadComparison ? (
-                            <p className="text-xs text-muted-foreground">
-                              {results.heavyLoadComparison.optionUsed === "CF" && `Custo CF (além 10 ton): ${results.pombalense.weightCost.toFixed(2)} €`}
-                              {results.heavyLoadComparison.optionUsed === "3Eixos" && `Custo 3 Eixos (carga completa): ${results.pombalense.weightCost.toFixed(2)} €`}
-                              {results.heavyLoadComparison.optionUsed === "Reboque" && `Custo Reboque (carga completa): ${results.pombalense.weightCost.toFixed(2)} €`}
-                            </p>
-                          ) : (
-                            <p className="text-xs text-muted-foreground">Custo por peso: {results.pombalense.weightCost.toFixed(2)} €</p>
-                          )}
-                          {results.pombalense.deliveryCost > 0 && (
-                            <p className="text-xs text-muted-foreground">Custo deslocações: {results.pombalense.deliveryCost.toFixed(2)} €</p>
-                          )}
-                        </div>
-                      )}
-                      {/* IMPROVED: heavy load analysis with single badge on applied option */}
-                      {results.heavyLoadComparison && (
-                        <div className="mt-3 pt-3 border-t border-border space-y-2">
-                          <p className="text-xs font-semibold">⚖️ Análise de Carga Completa</p>
-                          {numFreightsManual > 0 && (
-                            <p className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
-                              <Info className="h-3 w-3" /> Com deslocações, o custo CF incremental é ignorado — apenas 3 Eixos e Reboque são considerados
-                            </p>
-                          )}
-                          <div className="flex justify-between text-xs text-muted-foreground">
-                            <span className={numFreightsManual > 0 ? "line-through opacity-50" : ""}>
-                              Custo CF incremental (além 10 ton)
-                              {results.heavyLoadComparison.optionUsed === "CF" && (
-                                <span className="ml-2 inline-block text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-2 py-0.5 rounded-full">
-                                  ✅ Opção mais económica — aplicada ao custo total
-                                </span>
-                              )}
-                            </span>
-                            <span className={`font-medium text-foreground ${numFreightsManual > 0 ? "line-through opacity-50" : ""}`}>{results.heavyLoadComparison.custoCFIncremental.toFixed(2)} €</span>
-                          </div>
-                          <div className="flex justify-between text-xs text-muted-foreground">
-                            <span>
-                              Custo 3 Eixos (tabela CC)
-                              {results.heavyLoadComparison.optionUsed === "3Eixos" && (
-                                <span className="ml-2 inline-block text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-2 py-0.5 rounded-full">
-                                  ✅ Opção mais económica — aplicada ao custo total
-                                </span>
-                              )}
-                            </span>
-                            <span className="font-medium text-foreground">
-                              {results.heavyLoadComparison.custoThreeAxle !== null
-                                ? `${results.heavyLoadComparison.custoThreeAxle.toFixed(2)} €`
-                                : "Não disponível"}
-                            </span>
-                          </div>
-                          {/* IMPROVED: always show Reboque alongside 3 Eixos */}
-                          <div className="flex justify-between text-xs text-muted-foreground">
-                            <span>
-                              Custo Reboque
-                              {results.heavyLoadComparison.optionUsed === "Reboque" && (
-                                <span className="ml-2 inline-block text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-2 py-0.5 rounded-full">
-                                  ✅ Opção mais económica — aplicada ao custo total
-                                </span>
-                              )}
-                            </span>
-                            <span className="font-medium text-foreground">
-                              {results.heavyLoadComparison.custoTrailer !== null
-                                ? `${results.heavyLoadComparison.custoTrailer.toFixed(2)} €`
-                                : "Não disponível"}
-                            </span>
-                          </div>
-                        </div>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right">{zoneFound ? results.pombalense.numFreights : "—"}</TableCell>
-                    <TableCell className="text-right font-bold">{zoneFound ? `${results.pombalense.totalCost.toFixed(2)} €` : "—"}</TableCell>
-                    <TableCell className="text-right">{zoneFound && totalWeight > 0 ? (results.pombalense.totalCost / totalWeight).toFixed(2) : "—"}</TableCell>
-                    <TableCell className="text-right">{zoneFound && totalKm > 0 ? (results.pombalense.totalCost / totalKm).toFixed(2) : "—"}</TableCell>
-                  </TableRow>
-                  {results.fleetOptions.map((opt) => {
-                    const isWeightExcessive = totalWeight > opt.capacityTon;
-                    return (
-                      <TableRow
-                        key={opt.vehicleName}
-                        className={isWeightExcessive ? "bg-destructive/10" : cheapest === opt.vehicleName ? "bg-green-50 dark:bg-green-950/30" : ""}
-                      >
-                        <TableCell className="font-medium">
-                          {opt.vehicleName}
-                          {isWeightExcessive && (
-                            <span className="ml-2 text-xs bg-destructive/20 text-destructive px-2 py-0.5 rounded-full">
-                              Peso excessivo
-                            </span>
-                          )}
-                          {/* IMPROVED: amber badge for capacity warning per trip */}
-                          {!isWeightExcessive && opt.warning && (
-                            <span className="ml-2 text-xs bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200 px-2 py-0.5 rounded-full">
-                              {opt.warning}
-                            </span>
-                          )}
-                          {!isWeightExcessive && !opt.warning && cheapest === opt.vehicleName && (
-                            <span className="ml-2 text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-2 py-0.5 rounded-full">
+
+          {/* Results table + chart side by side */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <TrendingDown className="h-4 w-4" />
+                  Resultados da Simulação
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-3">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-xs w-[40%]">Opção</TableHead>
+                      <TableHead className="text-xs text-right">Desloc.</TableHead>
+                      <TableHead className="text-xs text-right">Custo Total</TableHead>
+                      <TableHead className="text-xs text-right">€/ton</TableHead>
+                      <TableHead className="text-xs text-right">€/km</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    <TableRow className={zoneFound && cheapest === "Pombalense" ? "bg-green-50 dark:bg-green-950/30" : ""}>
+                      <TableCell className="font-medium text-xs py-2">
+                        <div>
+                          Pombalense
+                          {zoneFound && cheapest === "Pombalense" && (
+                            <span className="ml-1 text-[10px] bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-1.5 py-0.5 rounded-full">
                               Mais económico
                             </span>
                           )}
-                        </TableCell>
-                        {/* IMPROVED: renamed "Fretes" to "Deslocações" */}
-                        <TableCell className="text-right">{isWeightExcessive ? "—" : opt.numFreights}</TableCell>
-                        <TableCell className="text-right font-bold">{isWeightExcessive ? "—" : `${opt.totalCost.toFixed(2)} €`}</TableCell>
-                        <TableCell className="text-right">{isWeightExcessive ? "—" : (opt.costPerTon?.toFixed(2) ?? "-")}</TableCell>
-                        <TableCell className="text-right">{isWeightExcessive ? "—" : (opt.costPerKm2?.toFixed(2) ?? "-")}</TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+                          {zoneFound && extraRate > 0 && (
+                            <span className="ml-1 text-[10px] bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200 px-1.5 py-0.5 rounded-full">
+                              +{extraRate}%
+                            </span>
+                          )}
+                        </div>
+                        {zoneFound && (
+                          <div className="mt-0.5 space-y-0.5">
+                            {results.heavyLoadComparison ? (
+                              <p className="text-[10px] text-muted-foreground">
+                                {results.heavyLoadComparison.optionUsed === "CF" && `CF: ${results.pombalense.weightCost.toFixed(2)} €`}
+                                {results.heavyLoadComparison.optionUsed === "3Eixos" && `3 Eixos: ${results.pombalense.weightCost.toFixed(2)} €`}
+                                {results.heavyLoadComparison.optionUsed === "Reboque" && `Reboque: ${results.pombalense.weightCost.toFixed(2)} €`}
+                              </p>
+                            ) : (
+                              <p className="text-[10px] text-muted-foreground">Peso: {results.pombalense.weightCost.toFixed(2)} €</p>
+                            )}
+                            {results.pombalense.deliveryCost > 0 && (
+                              <p className="text-[10px] text-muted-foreground">Desloc.: {results.pombalense.deliveryCost.toFixed(2)} €</p>
+                            )}
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right text-xs py-2">{zoneFound ? results.pombalense.numFreights : "—"}</TableCell>
+                      <TableCell className="text-right font-bold text-xs py-2">{zoneFound ? `${results.pombalense.totalCost.toFixed(2)} €` : "—"}</TableCell>
+                      <TableCell className="text-right text-xs py-2">{zoneFound && totalWeight > 0 ? (results.pombalense.totalCost / totalWeight).toFixed(2) : "—"}</TableCell>
+                      <TableCell className="text-right text-xs py-2">{zoneFound && totalKm > 0 ? (results.pombalense.totalCost / totalKm).toFixed(2) : "—"}</TableCell>
+                    </TableRow>
+                    {results.fleetOptions.map((opt) => {
+                      const isWeightExcessive = totalWeight > opt.capacityTon;
+                      return (
+                        <TableRow
+                          key={opt.vehicleName}
+                          className={isWeightExcessive ? "bg-destructive/10" : cheapest === opt.vehicleName ? "bg-green-50 dark:bg-green-950/30" : ""}
+                        >
+                          <TableCell className="font-medium text-xs py-2">
+                            {opt.vehicleName}
+                            {isWeightExcessive && (
+                              <span className="ml-1 text-[10px] bg-destructive/20 text-destructive px-1.5 py-0.5 rounded-full">
+                                Peso excessivo
+                              </span>
+                            )}
+                            {!isWeightExcessive && opt.warning && (
+                              <span className="ml-1 text-[10px] bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200 px-1.5 py-0.5 rounded-full">
+                                {opt.warning}
+                              </span>
+                            )}
+                            {!isWeightExcessive && !opt.warning && cheapest === opt.vehicleName && (
+                              <span className="ml-1 text-[10px] bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-1.5 py-0.5 rounded-full">
+                                Mais económico
+                              </span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right text-xs py-2">{isWeightExcessive ? "—" : opt.numFreights}</TableCell>
+                          <TableCell className="text-right font-bold text-xs py-2">{isWeightExcessive ? "—" : `${opt.totalCost.toFixed(2)} €`}</TableCell>
+                          <TableCell className="text-right text-xs py-2">{isWeightExcessive ? "—" : (opt.costPerTon?.toFixed(2) ?? "-")}</TableCell>
+                          <TableCell className="text-right text-xs py-2">{isWeightExcessive ? "—" : (opt.costPerKm2?.toFixed(2) ?? "-")}</TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
 
+                {/* Heavy load analysis inline */}
+                {results.heavyLoadComparison && (
+                  <div className="mt-3 pt-3 border-t border-border space-y-1.5">
+                    <p className="text-xs font-semibold">⚖️ Análise de Carga Completa</p>
+                    {numFreightsManual > 0 && (
+                      <p className="text-[10px] text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                        <Info className="h-3 w-3 shrink-0" /> Com deslocações, CF incremental ignorado
+                      </p>
+                    )}
+                    <div className="flex justify-between text-[11px] text-muted-foreground">
+                      <span className={numFreightsManual > 0 ? "line-through opacity-50" : ""}>
+                        CF incremental
+                        {results.heavyLoadComparison.optionUsed === "CF" && (
+                          <span className="ml-1 text-[10px] bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-1.5 py-0.5 rounded-full">
+                            ✅ Aplicada
+                          </span>
+                        )}
+                      </span>
+                      <span className={`font-medium text-foreground ${numFreightsManual > 0 ? "line-through opacity-50" : ""}`}>{results.heavyLoadComparison.custoCFIncremental.toFixed(2)} €</span>
+                    </div>
+                    <div className="flex justify-between text-[11px] text-muted-foreground">
+                      <span>
+                        3 Eixos (CC)
+                        {results.heavyLoadComparison.optionUsed === "3Eixos" && (
+                          <span className="ml-1 text-[10px] bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-1.5 py-0.5 rounded-full">
+                            ✅ Aplicada
+                          </span>
+                        )}
+                      </span>
+                      <span className="font-medium text-foreground">
+                        {results.heavyLoadComparison.custoThreeAxle !== null
+                          ? `${results.heavyLoadComparison.custoThreeAxle.toFixed(2)} €`
+                          : "N/D"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-[11px] text-muted-foreground">
+                      <span>
+                        Reboque
+                        {results.heavyLoadComparison.optionUsed === "Reboque" && (
+                          <span className="ml-1 text-[10px] bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-1.5 py-0.5 rounded-full">
+                            ✅ Aplicada
+                          </span>
+                        )}
+                      </span>
+                      <span className="font-medium text-foreground">
+                        {results.heavyLoadComparison.custoTrailer !== null
+                          ? `${results.heavyLoadComparison.custoTrailer.toFixed(2)} €`
+                          : "N/D"}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
-
-          <CostComparisonChart data={chartData} title="Comparação de Custos — Polímeros/Equipamentos" />
+            <CostComparisonChart data={chartData} title="Comparação de Custos — Polímeros" />
+          </div>
         </>
       )}
     </div>
