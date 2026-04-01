@@ -270,6 +270,7 @@ export function ConstructionSimulator() {
                   <TableHead className="text-xs py-1">Nº Placas</TableHead>
                   <TableHead className="text-xs py-1">Tipo / Comprimento</TableHead>
                   <TableHead className="text-xs py-1">Comp. (m)</TableHead>
+                  <TableHead className="text-xs py-1">Peso (ton)</TableHead>
                   <TableHead className="w-10 py-1"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -290,6 +291,9 @@ export function ConstructionSimulator() {
                       </Select>
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground py-1">{line.lengthMeters} m</TableCell>
+                    <TableCell className="py-1">
+                      <Input className="h-8" type="number" value={line.weightTon || ""} onChange={e => updateWeight(line.id, Number(e.target.value))} placeholder="0" step="0.1" />
+                    </TableCell>
                     <TableCell className="py-1">
                       <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => removeLine(line.id)} disabled={lines.length === 1}>
                         <Trash2 className="h-3 w-3 text-destructive" />
