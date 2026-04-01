@@ -206,6 +206,20 @@ export function ConstructionSimulator() {
   const [showSaveInput, setShowSaveInput] = useState(false);
   const [estimateName, setEstimateName] = useState("");
 
+  // IMPROVED: normalize persisted lines so plate count is always a positive integer
+  useEffect(() => {
+    const hasInvalidPlateCounts = lines.some(line => line.numPlates !== normalizePositiveInt(line.numPlates));
+    if (!hasInvalidPlateCounts) return;
+
+    setConstruction(prev => ({
+      ...prev,
+      lines: prev.lines.map(line => ({
+        ...line,
+        numPlates: normalizePositiveInt(line.numPlates),
+      })),
+    }));
+  }, [lines, setConstruction]);
+
   const weightTon = lines.reduce((sum, l) => sum + (l.weightTon || 0), 0);
   const largestPlateMeters = Math.max(...lines.filter(l => l.numPlates > 0).map(l => l.lengthMeters), 0);
   const totalMeters = largestPlateMeters;
@@ -215,39 +229,54 @@ export function ConstructionSimulator() {
     setConstruction(prev => ({ ...prev, ...partial }));
   };
 
-  const setLines = (newLines: ConstructionLine[]) => update({ lines: newLines });
+  // IMPROVED: normalize line data before storing it in context
+  const setLines = (value: ConstructionLine[] | ((prev: ConstructionLine[]) => ConstructionLine[])) => {
+    setConstruction(prev => {
+      const nextLines = typeof value === "function" ? value(prev.lines) : value;
+      return {
+        ...prev,
+        lines: nextLines.map(line => ({
+          ...line,
+          numPlates: normalizePositiveInt(line.numPlates),
+        })),
+      };
+    });
+  };
   const setResults = (r: typeof results) => update({ results: r });
 
+  // IMPROVED: new rows always start with one plate
   const addLine = () => {
-    setLines([...lines, { id: crypto.randomUUID(), numPlates: 1, dimensionLabel: "", lengthMeters: 0, weightTon: 0 }]);
+    setLines(prev => [...prev, createConstructionLine()]);
   };
 
   const removeLine = (id: string) => {
-    if (lines.length > 1) setLines(lines.filter(l => l.id !== id));
+    if (lines.length > 1) setLines(prev => prev.filter(l => l.id !== id));
   };
 
   const updateDimension = (id: string, label: string) => {
     const dim = dimensionTypes.find(d => d.label === label);
-    setLines(lines.map(l =>
+    setLines(prev => prev.map(l =>
       l.id === id ? { ...l, dimensionLabel: label, lengthMeters: dim?.meters ?? 6 } : l
     ));
   };
 
-  const updatePlates = (id: string, num: number) => {
-    setLines(lines.map(l => (l.id === id ? { ...l, numPlates: num } : l)));
+  // IMPROVED: plate count accepts only positive integers
+  const updatePlates = (id: string, value: string) => {
+    const numPlates = normalizePositiveInt(value);
+    setLines(prev => prev.map(l => (l.id === id ? { ...l, numPlates } : l)));
   };
 
   const updateWeight = (id: string, weight: number) => {
-    setLines(lines.map(l => (l.id === id ? { ...l, weightTon: weight } : l)));
+    setLines(prev => prev.map(l => (l.id === id ? { ...l, weightTon: weight } : l)));
   };
 
   const updateLength = (id: string, length: number) => {
-    setLines(lines.map(l => (l.id === id ? { ...l, lengthMeters: length } : l)));
+    setLines(prev => prev.map(l => (l.id === id ? { ...l, lengthMeters: length } : l)));
   };
 
-  // IMPROVED: clear all fields and reset context
+  // IMPROVED: clear all fields and reset context with one plate by default
   const handleClear = () => {
-    setConstruction({ ...defaultConstruction, lines: [{ id: crypto.randomUUID(), numPlates: 1, dimensionLabel: "", lengthMeters: 0, weightTon: 0 }] });
+    setConstruction({ ...defaultConstruction, lines: [createConstructionLine()] });
     setShowSaveInput(false);
     setEstimateName("");
   };
