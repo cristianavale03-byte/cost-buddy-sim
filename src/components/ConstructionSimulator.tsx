@@ -344,12 +344,12 @@ export function ConstructionSimulator() {
             Motivo: <span className="font-bold">{results.impossibleReason}</span>
             {results.impossibleReason === "comprimento excedente" && (
               <span className="block mt-1 text-xs">
-                Placa maior ({results.largestPlateMeters}m) excede capacidade ({MAX_VEHICLE_LENGTH_METERS}m).
+                Placa maior ({results.largestPlateMeters}m) excede limite máximo ({MAX_PLATE_LENGTH}m).
               </span>
             )}
-            {results.impossibleReason === "peso excedente" && (
+            {results.impossibleReason?.includes("peso") && (
               <span className="block mt-1 text-xs">
-                Peso ({weightTon} ton) excede capacidade ({MAX_VEHICLE_WEIGHT_TON} ton).
+                Peso ({weightTon} ton) excede limite máximo ({MAX_WEIGHT_REBOQUE} ton).
               </span>
             )}
           </AlertDescription>
