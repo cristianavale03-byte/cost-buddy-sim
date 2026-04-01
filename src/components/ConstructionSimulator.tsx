@@ -30,8 +30,8 @@ const dimensionToCCField: Record<string, keyof CCPriceEntry> = {
   "Chapas 7 a 8m": "chapas7a8",
 };
 
-const MAX_VEHICLE_LENGTH_METERS = 13.6;
-const MAX_VEHICLE_WEIGHT_TON = 15;
+const MAX_PLATE_LENGTH = 13.6;
+const MAX_WEIGHT_REBOQUE = 25;
 
 interface ConstructionResult {
   destination: string;
