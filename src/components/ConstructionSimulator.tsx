@@ -458,28 +458,31 @@ export function ConstructionSimulator() {
                       <TableCell className="text-right text-xs py-2">{results.custoKm !== null ? results.custoKm.toFixed(2) : "—"}</TableCell>
                     </TableRow>
                     {results.fleetOptions.map(opt => {
-                      const isWeightExcessive = weightTon > opt.capacityTon;
+                      const isExcessive = opt.lengthExcessive || opt.weightExcessive;
+                      const badges: string[] = [];
+                      if (opt.lengthExcessive) badges.push("Comprimento excessivo");
+                      if (opt.weightExcessive) badges.push("Peso excessivo");
                       return (
                         <TableRow
                           key={opt.vehicleName}
-                          className={isWeightExcessive ? "bg-destructive/10" : cheapest === opt.vehicleName ? "bg-green-50 dark:bg-green-950/30" : ""}
+                          className={isExcessive ? "bg-destructive/10" : cheapest === opt.vehicleName ? "bg-green-50 dark:bg-green-950/30" : ""}
                         >
                           <TableCell className="font-medium text-xs py-2">
                             {opt.vehicleName}
-                            {isWeightExcessive && (
-                              <span className="ml-1 text-[10px] bg-destructive/20 text-destructive px-1.5 py-0.5 rounded-full">
-                                Peso excessivo
+                            {badges.map(b => (
+                              <span key={b} className="ml-1 text-[10px] bg-destructive/20 text-destructive px-1.5 py-0.5 rounded-full">
+                                {b}
                               </span>
-                            )}
-                            {!isWeightExcessive && cheapest === opt.vehicleName && (
+                            ))}
+                            {!isExcessive && cheapest === opt.vehicleName && (
                               <span className="ml-1 text-[10px] bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-1.5 py-0.5 rounded-full">
                                 Mais económico
                               </span>
                             )}
                           </TableCell>
-                          <TableCell className="text-right text-xs py-2">{isWeightExcessive ? "—" : opt.numFreights}</TableCell>
-                          <TableCell className="text-right font-bold text-xs py-2">{isWeightExcessive ? "—" : `${opt.totalCost.toFixed(2)} €`}</TableCell>
-                          <TableCell className="text-right text-xs py-2">{isWeightExcessive ? "—" : (opt.costPerKm2?.toFixed(2) ?? "—")}</TableCell>
+                          <TableCell className="text-right text-xs py-2">{isExcessive ? "—" : opt.numFreights}</TableCell>
+                          <TableCell className="text-right font-bold text-xs py-2">{isExcessive ? "—" : `${opt.totalCost.toFixed(2)} €`}</TableCell>
+                          <TableCell className="text-right text-xs py-2">{isExcessive ? "—" : (opt.costPerKm2?.toFixed(2) ?? "—")}</TableCell>
                         </TableRow>
                       );
                     })}
