@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Trash2, TrendingDown, Lock, AlertTriangle, Info } from "lucide-react";
+import { Plus, Trash2, TrendingDown, Lock, AlertTriangle, Info, RotateCcw, Save, Check, X } from "lucide-react";
 import { ccPrices, dimensionTypes, fleetVehicles, deliveryCostPerEntry, type CCPriceEntry } from "@/data/fleetData";
 import { calculateFleetCostByMeters, findCheapest, type FleetCostResult } from "@/utils/costCalculations";
 import { CostComparisonChart } from "./CostComparisonChart";
@@ -13,6 +13,8 @@ import type { ConstructionLine } from "@/utils/costCalculations";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { usePombalenseExtraRate } from "@/hooks/usePombalenseExtraRate";
 import { getConstructionRoundTripKm } from "@/data/distanceData";
+// IMPROVED: use context for state persistence across tabs
+import { useSimulatorState, defaultConstruction, type SavedEstimate } from "@/contexts/SimulatorStateContext";
 
 const ccDestinations = ccPrices.map(p => p.destination).sort();
 
@@ -184,18 +186,27 @@ function calculateConstructionCost(
 }
 
 export function ConstructionSimulator() {
-  const [destination, setDestination] = useState("");
-  const [totalKm, setTotalKm] = useState<number>(0);
-  const [lines, setLines] = useState<ConstructionLine[]>([
-    { id: crypto.randomUUID(), numPlates: 0, dimensionLabel: "", lengthMeters: 0, weightTon: 0 },
-  ]);
-  const weightTon = lines.reduce((sum, l) => sum + (l.weightTon || 0), 0);
-  const [numFreightsManual, setNumFreightsManual] = useState<number>(0);
-  const [results, setResults] = useState<ConstructionResult | null>(null);
+  const { construction, setConstruction, savedEstimates, setSavedEstimates } = useSimulatorState();
   const { rate: extraRate } = usePombalenseExtraRate();
 
+  // IMPROVED: read state from context instead of local useState
+  const { destination, totalKm, lines, numFreightsManual, results } = construction;
+
+  // IMPROVED: save estimate inline input state
+  const [showSaveInput, setShowSaveInput] = useState(false);
+  const [estimateName, setEstimateName] = useState("");
+
+  const weightTon = lines.reduce((sum, l) => sum + (l.weightTon || 0), 0);
   const largestPlateMeters = Math.max(...lines.filter(l => l.numPlates > 0).map(l => l.lengthMeters), 0);
   const totalMeters = largestPlateMeters;
+
+  // IMPROVED: helper to update context
+  const update = (partial: Partial<typeof construction>) => {
+    setConstruction(prev => ({ ...prev, ...partial }));
+  };
+
+  const setLines = (newLines: ConstructionLine[]) => update({ lines: newLines });
+  const setResults = (r: typeof results) => update({ results: r });
 
   const addLine = () => {
     setLines([...lines, { id: crypto.randomUUID(), numPlates: 0, dimensionLabel: "", lengthMeters: 0, weightTon: 0 }]);
@@ -224,14 +235,51 @@ export function ConstructionSimulator() {
     setLines(lines.map(l => (l.id === id ? { ...l, lengthMeters: length } : l)));
   };
 
+  // IMPROVED: clear all fields and reset context
+  const handleClear = () => {
+    setConstruction({ ...defaultConstruction, lines: [{ id: crypto.randomUUID(), numPlates: 0, dimensionLabel: "", lengthMeters: 0, weightTon: 0 }] });
+    setShowSaveInput(false);
+    setEstimateName("");
+  };
+
   const simulate = () => {
     if (!destination) return;
     const result = calculateConstructionCost(destination, lines, totalKm, weightTon, numFreightsManual, extraRate);
     setResults(result);
   };
 
+  // IMPROVED: save estimate to context
+  const handleSaveEstimate = () => {
+    if (!estimateName.trim() || !results) return;
+    const validFleet = results.fleetOptions.filter((o: any) => !o.lengthExcessive && !o.weightExcessive);
+    const cheapestOpt = findCheapest(results.custoFinal, validFleet);
+    const bestFleet = validFleet.sort((a: any, b: any) => a.totalCost - b.totalCost)[0];
+    const estimate: SavedEstimate = {
+      id: crypto.randomUUID(),
+      name: estimateName.trim(),
+      savedAt: new Date().toISOString(),
+      type: "construction",
+      origin: "Espinho",
+      destination,
+      totalKm,
+      weightTon,
+      totalMeters: results.totalMeters,
+      largestPlateLabel: results.largestPlateLabel,
+      numFreights: results.numFreights,
+      constructionPombalenseCost: results.custoFinal,
+      pombalenseTotalCost: results.custoFinal,
+      bestFleetOption: bestFleet?.vehicleName,
+      bestFleetCost: bestFleet?.totalCost,
+      cheapestOption: cheapestOpt,
+      extraRateApplied: extraRate,
+    };
+    setSavedEstimates(prev => [...prev, estimate]);
+    setShowSaveInput(false);
+    setEstimateName("");
+  };
+
   const validFleetOptions = results && !results.impossible
-    ? results.fleetOptions.filter(o => !o.lengthExcessive && !o.weightExcessive)
+    ? results.fleetOptions.filter((o: any) => !o.lengthExcessive && !o.weightExcessive)
     : [];
 
   const cheapest = results && !results.impossible
@@ -241,7 +289,7 @@ export function ConstructionSimulator() {
   const chartData = results && !results.impossible
     ? [
         { name: "Pombalense", custo: Math.round(results.custoFinal * 100) / 100 },
-        ...validFleetOptions.map(o => ({
+        ...validFleetOptions.map((o: any) => ({
           name: o.vehicleName,
           custo: Math.round(o.totalCost * 100) / 100,
         })),
@@ -253,7 +301,13 @@ export function ConstructionSimulator() {
       {/* Combined inputs card */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-lg">Dados do Transporte</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg">Dados do Transporte</CardTitle>
+            {/* IMPROVED: clear button to reset all fields */}
+            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleClear}>
+              <RotateCcw className="h-3 w-3 mr-1" /> Limpar
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -266,9 +320,8 @@ export function ConstructionSimulator() {
             <div className="space-y-1">
               <Label className="text-xs">Destino</Label>
               <Select value={destination} onValueChange={(val) => {
-                setDestination(val);
                 const estimated = getConstructionRoundTripKm(val);
-                if (estimated !== null) setTotalKm(estimated);
+                update({ destination: val, totalKm: estimated !== null ? estimated : totalKm });
               }}>
                 <SelectTrigger className="h-9"><SelectValue placeholder="Selecionar destino" /></SelectTrigger>
                 <SelectContent>
@@ -280,11 +333,11 @@ export function ConstructionSimulator() {
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Km Totais (ida + volta)</Label>
-              <Input className="h-9" type="number" value={totalKm || ""} onChange={e => setTotalKm(Number(e.target.value))} placeholder="Ex: 360" />
+              <Input className="h-9" type="number" value={totalKm || ""} onChange={e => update({ totalKm: Number(e.target.value) })} placeholder="Ex: 360" />
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Nº de Deslocações</Label>
-              <Input className="h-9" type="number" value={numFreightsManual} onChange={e => setNumFreightsManual(Math.max(0, Number(e.target.value)))} placeholder="0" min={0} />
+              <Input className="h-9" type="number" value={numFreightsManual} onChange={e => update({ numFreightsManual: Math.max(0, Number(e.target.value)) })} placeholder="0" min={0} />
               <p className="text-[10px] text-muted-foreground flex items-center gap-1">
                 <Info className="h-3 w-3 shrink-0" /> 25 €/deslocação (Pombalense)
               </p>
@@ -364,6 +417,32 @@ export function ConstructionSimulator() {
 
       {results && !results.impossible && (
         <>
+          {/* IMPROVED: save estimate button + inline input */}
+          <div className="flex items-center gap-2 px-1">
+            {!showSaveInput ? (
+              <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setShowSaveInput(true)}>
+                <Save className="h-3 w-3 mr-1" /> Guardar Estimativa
+              </Button>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Input
+                  className="h-7 text-xs w-48"
+                  value={estimateName}
+                  onChange={(e) => setEstimateName(e.target.value)}
+                  placeholder="Nome da estimativa"
+                  autoFocus
+                  onKeyDown={(e) => e.key === "Enter" && handleSaveEstimate()}
+                />
+                <Button size="icon" variant="ghost" className="h-7 w-7" onClick={handleSaveEstimate} disabled={!estimateName.trim()}>
+                  <Check className="h-3 w-3 text-green-600" />
+                </Button>
+                <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setShowSaveInput(false); setEstimateName(""); }}>
+                  <X className="h-3 w-3 text-destructive" />
+                </Button>
+              </div>
+            )}
+          </div>
+
           {/* Pombalense detail + comparison side by side */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <Card>
@@ -463,7 +542,7 @@ export function ConstructionSimulator() {
                       <TableCell className="text-right font-bold text-xs py-2">{results.custoFinal.toFixed(2)} €</TableCell>
                       <TableCell className="text-right text-xs py-2">{results.custoKm !== null ? results.custoKm.toFixed(2) : "—"}</TableCell>
                     </TableRow>
-                    {results.fleetOptions.map(opt => {
+                    {results.fleetOptions.map((opt: any) => {
                       const isExcessive = opt.lengthExcessive || opt.weightExcessive;
                       const badges: string[] = [];
                       if (opt.lengthExcessive) badges.push("Comprimento excessivo");
@@ -475,7 +554,7 @@ export function ConstructionSimulator() {
                         >
                           <TableCell className="font-medium text-xs py-2">
                             {opt.vehicleName}
-                            {badges.map(b => (
+                            {badges.map((b: string) => (
                               <span key={b} className="ml-1 text-[10px] bg-destructive/20 text-destructive px-1.5 py-0.5 rounded-full">
                                 {b}
                               </span>

@@ -1,0 +1,93 @@
+// IMPROVED: centralized state context to preserve simulator data across tab navigation
+import { createContext, useContext, useState, type ReactNode } from "react";
+import type { CargoLine, ConstructionLine } from "@/utils/costCalculations";
+
+export interface SavedEstimate {
+  id: string;
+  name: string;
+  savedAt: string;
+  type: "polymers" | "construction";
+  origin?: string;
+  destination?: string;
+  totalKm?: number;
+  totalWeightTon?: number;
+  cargoLines?: CargoLine[];
+  pombalenseTotalCost?: number;
+  pombalensetWeightCost?: number;
+  pombalensetDeliveryCost?: number;
+  bestFleetOption?: string;
+  bestFleetCost?: number;
+  cheapestOption?: string;
+  heavyLoadComparison?: object;
+  weightTon?: number;
+  totalMeters?: number;
+  largestPlateLabel?: string;
+  numFreights?: number;
+  constructionPombalenseCost?: number;
+  extraRateApplied?: number;
+}
+
+interface PolymerState {
+  origin: string;
+  destination: string;
+  totalKm: number;
+  numFreightsManual: number;
+  cargoLines: CargoLine[];
+  results: any | null;
+}
+
+interface ConstructionState {
+  destination: string;
+  totalKm: number;
+  lines: ConstructionLine[];
+  numFreightsManual: number;
+  results: any | null;
+}
+
+interface SimulatorStateContextType {
+  polymer: PolymerState;
+  setPolymer: React.Dispatch<React.SetStateAction<PolymerState>>;
+  construction: ConstructionState;
+  setConstruction: React.Dispatch<React.SetStateAction<ConstructionState>>;
+  savedEstimates: SavedEstimate[];
+  setSavedEstimates: React.Dispatch<React.SetStateAction<SavedEstimate[]>>;
+}
+
+const defaultPolymer: PolymerState = {
+  origin: "",
+  destination: "",
+  totalKm: 0,
+  numFreightsManual: 0,
+  cargoLines: [{ id: crypto.randomUUID(), client: "", weightTon: 0 }],
+  results: null,
+};
+
+const defaultConstruction: ConstructionState = {
+  destination: "",
+  totalKm: 0,
+  lines: [{ id: crypto.randomUUID(), numPlates: 0, dimensionLabel: "", lengthMeters: 0, weightTon: 0 }],
+  numFreightsManual: 0,
+  results: null,
+};
+
+const SimulatorStateContext = createContext<SimulatorStateContextType | null>(null);
+
+export function SimulatorStateProvider({ children }: { children: ReactNode }) {
+  const [polymer, setPolymer] = useState<PolymerState>(defaultPolymer);
+  const [construction, setConstruction] = useState<ConstructionState>(defaultConstruction);
+  const [savedEstimates, setSavedEstimates] = useState<SavedEstimate[]>([]);
+
+  return (
+    <SimulatorStateContext.Provider value={{ polymer, setPolymer, construction, setConstruction, savedEstimates, setSavedEstimates }}>
+      {children}
+    </SimulatorStateContext.Provider>
+  );
+}
+
+export function useSimulatorState() {
+  const ctx = useContext(SimulatorStateContext);
+  if (!ctx) throw new Error("useSimulatorState must be used within SimulatorStateProvider");
+  return ctx;
+}
+
+export { defaultPolymer, defaultConstruction };

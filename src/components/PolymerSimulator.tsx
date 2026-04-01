@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Trash2, TrendingDown, Info } from "lucide-react";
+import { Plus, Trash2, TrendingDown, Info, RotateCcw, Save, Check, X } from "lucide-react";
 import { origins, cfZones } from "@/data/fleetData";
 import { getEstimatedRoundTripKm } from "@/data/distanceData";
 import {
@@ -16,17 +16,19 @@ import {
 } from "@/utils/costCalculations";
 import { CostComparisonChart } from "./CostComparisonChart";
 import { usePombalenseExtraRate } from "@/hooks/usePombalenseExtraRate";
+// IMPROVED: use context for state persistence across tabs
+import { useSimulatorState, defaultPolymer, type SavedEstimate } from "@/contexts/SimulatorStateContext";
 
 export function PolymerSimulator() {
-  const [origin, setOrigin] = useState("");
-  const [destination, setDestination] = useState("");
-  const [totalKm, setTotalKm] = useState<number>(0);
-  const [numFreightsManual, setNumFreightsManual] = useState<number>(0);
-  const [cargoLines, setCargoLines] = useState<CargoLine[]>([
-    { id: crypto.randomUUID(), client: "", weightTon: 0 },
-  ]);
-  const [results, setResults] = useState<ReturnType<typeof calculateAllPolymerOptions> | null>(null);
+  const { polymer, setPolymer, savedEstimates, setSavedEstimates } = useSimulatorState();
   const { rate: extraRate } = usePombalenseExtraRate();
+
+  // IMPROVED: read state from context instead of local useState
+  const { origin, destination, totalKm, numFreightsManual, cargoLines, results } = polymer;
+
+  // IMPROVED: save estimate inline input state
+  const [showSaveInput, setShowSaveInput] = useState(false);
+  const [estimateName, setEstimateName] = useState("");
 
   const totalWeight = cargoLines.reduce((sum, l) => sum + l.weightTon, 0);
 
@@ -37,6 +39,14 @@ export function PolymerSimulator() {
   const filteredDestinations = origin
     ? [...new Set(cfZones.filter(z => z.originId === originId).flatMap(z => z.destinations))].sort()
     : [];
+
+  // IMPROVED: helper to update context
+  const update = (partial: Partial<typeof polymer>) => {
+    setPolymer(prev => ({ ...prev, ...partial }));
+  };
+
+  const setCargoLines = (lines: CargoLine[]) => update({ cargoLines: lines });
+  const setResults = (r: typeof results) => update({ results: r });
 
   const addLine = () => {
     setCargoLines([...cargoLines, { id: crypto.randomUUID(), client: "", weightTon: 0 }]);
@@ -53,18 +63,19 @@ export function PolymerSimulator() {
   };
 
   const handleOriginChange = (val: string) => {
-    setOrigin(val);
-    setDestination("");
-    setTotalKm(0);
-    setResults(null);
+    update({ origin: val, destination: "", totalKm: 0, results: null });
   };
 
   const handleDestinationChange = (val: string) => {
-    setDestination(val);
     const estimated = getEstimatedRoundTripKm(origin, val);
-    if (estimated !== null) {
-      setTotalKm(estimated);
-    }
+    update({ destination: val, totalKm: estimated !== null ? estimated : totalKm });
+  };
+
+  // IMPROVED: clear all fields and reset context
+  const handleClear = () => {
+    setPolymer({ ...defaultPolymer, cargoLines: [{ id: crypto.randomUUID(), client: "", weightTon: 0 }] });
+    setShowSaveInput(false);
+    setEstimateName("");
   };
 
   const simulate = () => {
@@ -79,6 +90,35 @@ export function PolymerSimulator() {
     setResults(result);
   };
 
+  // IMPROVED: save estimate to context
+  const handleSaveEstimate = () => {
+    if (!estimateName.trim() || !results) return;
+    const cheapestOpt = findCheapest(results.pombalense.totalCost, results.fleetOptions);
+    const bestFleet = results.fleetOptions.filter((o: any) => totalWeight <= o.capacityTon).sort((a: any, b: any) => a.totalCost - b.totalCost)[0];
+    const estimate: SavedEstimate = {
+      id: crypto.randomUUID(),
+      name: estimateName.trim(),
+      savedAt: new Date().toISOString(),
+      type: "polymers",
+      origin,
+      destination,
+      totalKm,
+      totalWeightTon: totalWeight,
+      cargoLines,
+      pombalenseTotalCost: results.pombalense.totalCost,
+      pombalensetWeightCost: results.pombalense.weightCost,
+      pombalensetDeliveryCost: results.pombalense.deliveryCost,
+      bestFleetOption: bestFleet?.vehicleName,
+      bestFleetCost: bestFleet?.totalCost,
+      cheapestOption: cheapestOpt,
+      heavyLoadComparison: results.heavyLoadComparison,
+      extraRateApplied: extraRate,
+    };
+    setSavedEstimates(prev => [...prev, estimate]);
+    setShowSaveInput(false);
+    setEstimateName("");
+  };
+
   const zoneFound = results ? findCFZone(origin, destination) !== null : true;
 
   const cheapest = results
@@ -89,8 +129,8 @@ export function PolymerSimulator() {
     ? [
         ...(zoneFound ? [{ name: "Pombalense", custo: Math.round(results.pombalense.totalCost * 100) / 100 }] : []),
         ...results.fleetOptions
-          .filter((o) => totalWeight <= o.capacityTon)
-          .map((o) => ({
+          .filter((o: any) => totalWeight <= o.capacityTon)
+          .map((o: any) => ({
             name: o.vehicleName,
             custo: Math.round(o.totalCost * 100) / 100,
           })),
@@ -102,7 +142,13 @@ export function PolymerSimulator() {
       {/* Combined inputs + cargo in one card */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-lg">Dados do Transporte</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg">Dados do Transporte</CardTitle>
+            {/* IMPROVED: clear button to reset all fields */}
+            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleClear}>
+              <RotateCcw className="h-3 w-3 mr-1" /> Limpar
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -136,7 +182,7 @@ export function PolymerSimulator() {
                 className="h-9"
                 type="number"
                 value={totalKm || ""}
-                onChange={(e) => setTotalKm(Number(e.target.value))}
+                onChange={(e) => update({ totalKm: Number(e.target.value) })}
                 placeholder="Ex: 300"
               />
             </div>
@@ -146,7 +192,7 @@ export function PolymerSimulator() {
                 className="h-9"
                 type="number"
                 value={numFreightsManual}
-                onChange={(e) => setNumFreightsManual(Math.max(0, Number(e.target.value)))}
+                onChange={(e) => update({ numFreightsManual: Math.max(0, Number(e.target.value)) })}
                 placeholder="0"
                 min={0}
               />
@@ -229,6 +275,32 @@ export function PolymerSimulator() {
             </div>
           )}
 
+          {/* IMPROVED: save estimate button + inline input */}
+          <div className="flex items-center gap-2 px-1">
+            {!showSaveInput ? (
+              <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setShowSaveInput(true)}>
+                <Save className="h-3 w-3 mr-1" /> Guardar Estimativa
+              </Button>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Input
+                  className="h-7 text-xs w-48"
+                  value={estimateName}
+                  onChange={(e) => setEstimateName(e.target.value)}
+                  placeholder="Nome da estimativa"
+                  autoFocus
+                  onKeyDown={(e) => e.key === "Enter" && handleSaveEstimate()}
+                />
+                <Button size="icon" variant="ghost" className="h-7 w-7" onClick={handleSaveEstimate} disabled={!estimateName.trim()}>
+                  <Check className="h-3 w-3 text-green-600" />
+                </Button>
+                <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setShowSaveInput(false); setEstimateName(""); }}>
+                  <X className="h-3 w-3 text-destructive" />
+                </Button>
+              </div>
+            )}
+          </div>
+
           {/* Results table + chart side by side */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <Card>
@@ -287,7 +359,7 @@ export function PolymerSimulator() {
                       <TableCell className="text-right text-xs py-2">{zoneFound && totalWeight > 0 ? (results.pombalense.totalCost / totalWeight).toFixed(2) : "—"}</TableCell>
                       <TableCell className="text-right text-xs py-2">{zoneFound && totalKm > 0 ? (results.pombalense.totalCost / totalKm).toFixed(2) : "—"}</TableCell>
                     </TableRow>
-                    {results.fleetOptions.map((opt) => {
+                    {results.fleetOptions.map((opt: any) => {
                       const isWeightExcessive = totalWeight > opt.capacityTon;
                       return (
                         <TableRow
