@@ -191,7 +191,10 @@ export function ArchivePanel() {
                 <SortHeader label="Rota" sortKeyVal="route" />
                 <SortHeader label="Peso/Metros" sortKeyVal="weight" />
                 <SortHeader label="Pombalense (€)" sortKeyVal="pombalense" />
-                <SortHeader label="Melhor Frota" sortKeyVal="fleet" />
+                {/* IMPROVED: individual fleet cost columns */}
+                <SortHeader label="Frota 6t (€)" sortKeyVal="fleet6t" />
+                <SortHeader label="Frota 9t (€)" sortKeyVal="fleet9t" />
+                <SortHeader label="Frota 15t (€)" sortKeyVal="fleet15t" />
                 <SortHeader label="Mais Económico" sortKeyVal="cheapest" />
                 <TableHead className="w-10 py-1"></TableHead>
               </TableRow>
