@@ -33,20 +33,26 @@ const dimensionToCCField: Record<string, keyof CCPriceEntry> = {
 const MAX_PLATE_LENGTH = 13.6;
 const MAX_WEIGHT_REBOQUE = 25;
 
+interface FleetOptionResult extends FleetCostResult {
+  lengthExcessive: boolean;
+  weightExcessive: boolean;
+}
+
 interface ConstructionResult {
   destination: string;
   largestPlateLabel: string;
   largestPlateMeters: number;
+  ccColumnUsed: string;
   custoBase: number | null;
   custo3Eixos: number | null;
   custoReboque: number | null;
-  isExcessive: boolean;
+  pricingMode: "base" | "3eixos" | "reboque";
   numFreights: number;
   totalMeters: number;
   custoFinal: number;
   custoKm: number | null;
   custoMetro: number | null;
-  fleetOptions: FleetCostResult[];
+  fleetOptions: FleetOptionResult[];
   impossible: boolean;
   impossibleReason: string | null;
 }
