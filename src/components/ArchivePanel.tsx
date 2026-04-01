@@ -111,7 +111,7 @@ export function ArchivePanel() {
     doc.setFontSize(9);
     doc.text(`Exportado em: ${formatDate(new Date().toISOString())}`, 14, 22);
 
-    const head = [["Nome", "Tipo", "Data/Hora", "Rota", "Peso/Metros", "Pombalense (€)", "Melhor Frota", "Mais Económico"]];
+    const head = [["Nome", "Tipo", "Data/Hora", "Rota", "Peso/Metros", "Pombalense (€)", "Frota 6t (€)", "Frota 9t (€)", "Frota 15t (€)", "Mais Económico"]];
     const body = sorted.map(e => [
       e.name,
       e.type === "polymers" ? "Polímeros" : "Construção",
@@ -119,7 +119,10 @@ export function ArchivePanel() {
       getRoute(e),
       getWeightOrMeters(e),
       e.pombalenseTotalCost?.toFixed(2) ?? "—",
-      e.bestFleetOption ? `${e.bestFleetOption} (${e.bestFleetCost?.toFixed(2)} €)` : "—",
+      // IMPROVED: individual fleet cost columns in PDF
+      e.fleet6tCost?.toFixed(2) ?? "—",
+      e.fleet9tCost?.toFixed(2) ?? "—",
+      e.fleet15tCost?.toFixed(2) ?? "—",
       e.cheapestOption ?? "—",
     ]);
 
