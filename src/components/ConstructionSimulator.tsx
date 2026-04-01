@@ -140,6 +140,7 @@ function calculateConstructionCost(
   const custoReboque = getCCEntryPrice(entry, "trailer");
 
   // Determine pricing mode based on weight
+  // IMPROVED: if base price is N/D, fallback to 3 Eixos then Reboque
   let pricingMode: "base" | "3eixos" | "reboque";
   let effectiveCostPerFreight: number;
 
@@ -147,13 +148,23 @@ function calculateConstructionCost(
     pricingMode = "reboque";
     effectiveCostPerFreight = custoReboque ?? custo3Eixos ?? custoBase ?? 0;
   } else if (largestMeters > 8) {
-    // > 8m → 3 eixos
     pricingMode = "3eixos";
-    effectiveCostPerFreight = custo3Eixos ?? custoBase ?? 0;
+    effectiveCostPerFreight = custo3Eixos ?? custoReboque ?? 0;
   } else {
-    // ≤ 8m → use CC column price (including "Chapas 7 a 8m" for 7-8m)
-    pricingMode = "base";
-    effectiveCostPerFreight = custoBase ?? 0;
+    // ≤ 8m → use CC column price, fallback to 3 Eixos then Reboque
+    if (custoBase !== null) {
+      pricingMode = "base";
+      effectiveCostPerFreight = custoBase;
+    } else if (custo3Eixos !== null) {
+      pricingMode = "3eixos";
+      effectiveCostPerFreight = custo3Eixos;
+    } else if (custoReboque !== null) {
+      pricingMode = "reboque";
+      effectiveCostPerFreight = custoReboque;
+    } else {
+      pricingMode = "base";
+      effectiveCostPerFreight = 0;
+    }
   }
 
   if (extraRate > 0) {
