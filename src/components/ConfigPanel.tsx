@@ -20,11 +20,11 @@ export function ConfigPanel() {
       {/* IMPROVED: Pombalense extra rate config */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Taxa Extra Pombalense</CardTitle>
+        <CardTitle className="text-lg">Taxa Extra Transporte</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
           <div className="flex items-center gap-3">
-            <Label htmlFor="extra-rate" className="whitespace-nowrap">Taxa extra Pombalense (%)</Label>
+            <Label htmlFor="extra-rate" className="whitespace-nowrap">Taxa extra (%)</Label>
             {/* IMPROVED: disable input while loading from Supabase */}
             <Input
               id="extra-rate"
@@ -39,7 +39,7 @@ export function ConfigPanel() {
             />
           </div>
           <p className="text-xs text-muted-foreground flex items-center gap-1">
-            <Info className="h-3 w-3" /> Aplica-se aos custos de peso e chapas. As deslocações extras (25 €/deslocação) não são afetadas.
+            <Info className="h-3 w-3" /> Aplica-se aos custos da Pombalense e da frota interna. As deslocações extras (25 €/deslocação) não são afetadas.
           </p>
         </CardContent>
       </Card>

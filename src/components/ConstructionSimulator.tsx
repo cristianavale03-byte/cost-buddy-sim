@@ -167,8 +167,10 @@ function calculateConstructionCost(
     }
   }
 
+  // IMPROVED: apply extra rate to both Pombalense and fleet costs
+  const factor = extraRate > 0 ? 1 + extraRate / 100 : 1;
   if (extraRate > 0) {
-    effectiveCostPerFreight = effectiveCostPerFreight * (1 + extraRate / 100);
+    effectiveCostPerFreight = effectiveCostPerFreight * factor;
   }
 
   const numFreights = manualFreights;
@@ -181,7 +183,7 @@ function calculateConstructionCost(
     const weightExcessive = weightTon > v.capacityTon;
     const result = calculateFleetCostByMeters(v, totalKm, totalMeters);
     result.numFreights = 1;
-    result.totalCost = v.costPerKm * totalKm;
+    result.totalCost = v.costPerKm * totalKm * factor;
     result.costPerKm2 = totalKm > 0 ? result.totalCost / totalKm : 0;
     return { ...result, lengthExcessive, weightExcessive };
   });
