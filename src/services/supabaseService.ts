@@ -13,7 +13,7 @@ export async function fetchEstimates() {
 }
 
 export async function insertEstimate(e: Record<string, unknown>) {
-  const { error } = await supabase.from("estimates").insert(e);
+  const { error } = await supabase.from("estimates").insert(e as any);
   if (error) { console.error("insertEstimate", error); throw error; }
 }
 
@@ -42,7 +42,7 @@ export async function fetchExtraRate(): Promise<number> {
 export async function upsertExtraRate(rate: number) {
   const { error } = await supabase
     .from("settings")
-    .upsert({ key: "pombalense-extra-rate", value: String(rate), updated_at: new Date().toISOString() });
+    .upsert({ key: "pombalense-extra-rate", value: String(rate), updated_at: new Date().toISOString() } as any);
   if (error) { console.error("upsertExtraRate", error); throw error; }
 }
 
@@ -61,7 +61,7 @@ export async function fetchPriceOverride(key: "cf" | "cc") {
 export async function upsertPriceOverride(key: "cf" | "cc", data: unknown, updatedBy?: string) {
   const { error } = await supabase
     .from("price_table_overrides")
-    .upsert({ key, data, updated_at: new Date().toISOString(), updated_by: updatedBy ?? null });
+    .upsert({ key, data, updated_at: new Date().toISOString(), updated_by: updatedBy ?? null } as any);
   if (error) { console.error("upsertPriceOverride", error); throw error; }
 }
 
