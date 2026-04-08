@@ -82,9 +82,17 @@ export function PolymerSimulator() {
     if (totalKm <= 0 || totalWeight <= 0) return;
     const result = calculateAllPolymerOptions(totalWeight, totalKm, origin, destination, numFreightsManual);
     
+    // IMPROVED: apply extra rate to both Pombalense and fleet costs
     if (extraRate > 0) {
-      result.pombalense.weightCost = result.pombalense.weightCost * (1 + extraRate / 100);
+      const factor = 1 + extraRate / 100;
+      result.pombalense.weightCost = result.pombalense.weightCost * factor;
       result.pombalense.totalCost = result.pombalense.weightCost + result.pombalense.deliveryCost;
+      result.fleetOptions = result.fleetOptions.map((o: any) => ({
+        ...o,
+        totalCost: o.totalCost * factor,
+        costPerTon: o.costPerTon ? o.costPerTon * factor : o.costPerTon,
+        costPerKm2: o.costPerKm2 ? o.costPerKm2 * factor : o.costPerKm2,
+      }));
     }
     
     setResults(result);
