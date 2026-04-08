@@ -14,7 +14,132 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      estimates: {
+        Row: {
+          best_fleet_cost: number | null
+          best_fleet_option: string | null
+          cargo_lines: Json | null
+          cheapest_option: string | null
+          construction_pombalense_cost: number | null
+          destination: string | null
+          extra_rate_applied: number | null
+          fleet_15t_cost: number | null
+          fleet_6t_cost: number | null
+          fleet_9t_cost: number | null
+          heavy_load_comparison: Json | null
+          id: string
+          largest_plate_label: string | null
+          name: string
+          num_freights: number | null
+          origin: string | null
+          pombalense_delivery_cost: number | null
+          pombalense_total_cost: number | null
+          pombalense_weight_cost: number | null
+          saved_at: string
+          saved_by: string | null
+          total_km: number | null
+          total_meters: number | null
+          total_weight_ton: number | null
+          type: string
+          weight_ton: number | null
+        }
+        Insert: {
+          best_fleet_cost?: number | null
+          best_fleet_option?: string | null
+          cargo_lines?: Json | null
+          cheapest_option?: string | null
+          construction_pombalense_cost?: number | null
+          destination?: string | null
+          extra_rate_applied?: number | null
+          fleet_15t_cost?: number | null
+          fleet_6t_cost?: number | null
+          fleet_9t_cost?: number | null
+          heavy_load_comparison?: Json | null
+          id?: string
+          largest_plate_label?: string | null
+          name: string
+          num_freights?: number | null
+          origin?: string | null
+          pombalense_delivery_cost?: number | null
+          pombalense_total_cost?: number | null
+          pombalense_weight_cost?: number | null
+          saved_at?: string
+          saved_by?: string | null
+          total_km?: number | null
+          total_meters?: number | null
+          total_weight_ton?: number | null
+          type: string
+          weight_ton?: number | null
+        }
+        Update: {
+          best_fleet_cost?: number | null
+          best_fleet_option?: string | null
+          cargo_lines?: Json | null
+          cheapest_option?: string | null
+          construction_pombalense_cost?: number | null
+          destination?: string | null
+          extra_rate_applied?: number | null
+          fleet_15t_cost?: number | null
+          fleet_6t_cost?: number | null
+          fleet_9t_cost?: number | null
+          heavy_load_comparison?: Json | null
+          id?: string
+          largest_plate_label?: string | null
+          name?: string
+          num_freights?: number | null
+          origin?: string | null
+          pombalense_delivery_cost?: number | null
+          pombalense_total_cost?: number | null
+          pombalense_weight_cost?: number | null
+          saved_at?: string
+          saved_by?: string | null
+          total_km?: number | null
+          total_meters?: number | null
+          total_weight_ton?: number | null
+          type?: string
+          weight_ton?: number | null
+        }
+        Relationships: []
+      }
+      price_table_overrides: {
+        Row: {
+          data: Json
+          key: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          data: Json
+          key: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          data?: Json
+          key?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      settings: {
+        Row: {
+          key: string
+          updated_at: string
+          value: string
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          value: string
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          value?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

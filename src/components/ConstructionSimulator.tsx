@@ -304,10 +304,12 @@ export function ConstructionSimulator() {
     const validFleet = results.fleetOptions.filter((o: any) => !o.lengthExcessive && !o.weightExcessive);
     const cheapestOpt = findCheapest(results.custoFinal, validFleet);
     const bestFleet = validFleet.sort((a: any, b: any) => a.totalCost - b.totalCost)[0];
+    // IMPROVED: include saved_by from session
     const estimate: SavedEstimate = {
       id: crypto.randomUUID(),
       name: estimateName.trim(),
       savedAt: new Date().toISOString(),
+      savedBy: sessionStorage.getItem("agi-user-name") ?? "Anónimo",
       type: "construction",
       origin: "Espinho",
       destination,

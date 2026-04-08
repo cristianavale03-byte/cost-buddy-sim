@@ -37,7 +37,8 @@ function getDateString() {
 }
 
 export function ArchivePanel() {
-  const { savedEstimates, setSavedEstimates } = useSimulatorState();
+  // IMPROVED: loadingEstimates from Supabase
+  const { savedEstimates, setSavedEstimates, loadingEstimates } = useSimulatorState();
   const [sortKey, setSortKey] = useState<SortKey>("savedAt");
   const [sortAsc, setSortAsc] = useState(false);
 
@@ -88,6 +89,7 @@ export function ArchivePanel() {
       Nome: e.name,
       Tipo: e.type === "polymers" ? "Polímeros" : "Construção",
       "Data/Hora": formatDate(e.savedAt),
+      "Guardado por": e.savedBy ?? "—",
       Rota: getRoute(e),
       "Peso/Metros": getWeightOrMeters(e),
       "Pombalense (€)": e.pombalenseTotalCost?.toFixed(2) ?? "—",
@@ -111,11 +113,12 @@ export function ArchivePanel() {
     doc.setFontSize(9);
     doc.text(`Exportado em: ${formatDate(new Date().toISOString())}`, 14, 22);
 
-    const head = [["Nome", "Tipo", "Data/Hora", "Rota", "Peso/Metros", "Pombalense (€)", "Frota 6t (€)", "Frota 9t (€)", "Frota 15t (€)", "Mais Económico"]];
+    const head = [["Nome", "Tipo", "Data/Hora", "Guardado por", "Rota", "Peso/Metros", "Pombalense (€)", "Frota 6t (€)", "Frota 9t (€)", "Frota 15t (€)", "Mais Económico"]];
     const body = sorted.map(e => [
       e.name,
       e.type === "polymers" ? "Polímeros" : "Construção",
       formatDate(e.savedAt),
+      e.savedBy ?? "—",
       getRoute(e),
       getWeightOrMeters(e),
       e.pombalenseTotalCost?.toFixed(2) ?? "—",
@@ -139,6 +142,20 @@ export function ArchivePanel() {
     </TableHead>
   );
 
+  // IMPROVED: show spinner while loading from Supabase
+  if (loadingEstimates) {
+    return (
+      <Card>
+        <CardContent className="py-12">
+          <div className="text-center space-y-2">
+            <div className="h-8 w-8 mx-auto animate-spin rounded-full border-4 border-muted border-t-primary" />
+            <p className="text-sm text-muted-foreground">A carregar estimativas…</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   if (savedEstimates.length === 0) {
     return (
       <Card>
@@ -146,7 +163,7 @@ export function ArchivePanel() {
           <div className="text-center space-y-2">
             <Archive className="h-10 w-10 mx-auto text-muted-foreground" />
             <p className="text-sm text-muted-foreground">
-              Nenhuma estimativa guardada nesta sessão.
+              Nenhuma estimativa guardada.
             </p>
             <p className="text-xs text-muted-foreground">
               Simula e guarda resultados nos separadores Polímeros ou Construção.
@@ -252,6 +269,8 @@ export function ArchivePanel() {
                 <SortHeader label="Nome" sortKeyVal="name" />
                 <SortHeader label="Tipo" sortKeyVal="type" />
                 <SortHeader label="Data/Hora" sortKeyVal="savedAt" />
+                {/* IMPROVED: new column for who saved the estimate */}
+                <TableHead className="text-xs py-1">Guardado por</TableHead>
                 <SortHeader label="Rota" sortKeyVal="route" />
                 <SortHeader label="Peso/Metros" sortKeyVal="weight" />
                 <SortHeader label="Pombalense (€)" sortKeyVal="pombalense" />
@@ -285,6 +304,8 @@ export function ArchivePanel() {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-xs py-2">{formatDate(e.savedAt)}</TableCell>
+                  {/* IMPROVED: display saved_by */}
+                  <TableCell className="text-xs py-2">{e.savedBy ?? "—"}</TableCell>
                   <TableCell className="text-xs py-2">{getRoute(e)}</TableCell>
                   <TableCell className="text-xs py-2">{getWeightOrMeters(e)}</TableCell>
                   <TableCell className={`text-xs py-2 font-medium ${cheapestKey === "pombalense" ? greenCls : ""}`}>{e.pombalenseTotalCost?.toFixed(2) ?? "—"} €</TableCell>

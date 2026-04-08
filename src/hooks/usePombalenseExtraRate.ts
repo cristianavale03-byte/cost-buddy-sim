@@ -1,24 +1,24 @@
-// IMPROVED: Hook to manage Pombalense extra rate via localStorage
+// IMPROVED: Hook to manage Pombalense extra rate via Supabase settings table
 import { useState, useEffect } from "react";
-
-const STORAGE_KEY = "agi-pombalense-extra-rate";
-const DEFAULT_RATE = 0;
+import { fetchExtraRate, upsertExtraRate } from "@/services/supabaseService";
 
 export function usePombalenseExtraRate() {
-  const [rate, setRateState] = useState<number>(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    return stored !== null ? Number(stored) : DEFAULT_RATE;
-  });
+  const [rate, setRateState] = useState<number>(0);
+  const [loadingRate, setLoadingRate] = useState(true);
 
-  const setRate = (newRate: number) => {
-    setRateState(newRate);
-    localStorage.setItem(STORAGE_KEY, String(newRate));
-  };
-
+  // IMPROVED: load rate from Supabase on mount
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored !== null) setRateState(Number(stored));
+    fetchExtraRate()
+      .then(r => setRateState(r))
+      .catch(() => {})
+      .finally(() => setLoadingRate(false));
   }, []);
 
-  return { rate, setRate };
+  // IMPROVED: persist rate to Supabase on change
+  const setRate = (newRate: number) => {
+    setRateState(newRate);
+    upsertExtraRate(newRate).catch(() => {});
+  };
+
+  return { rate, setRate, loadingRate };
 }
