@@ -95,10 +95,12 @@ export function PolymerSimulator() {
     if (!estimateName.trim() || !results) return;
     const cheapestOpt = findCheapest(results.pombalense.totalCost, results.fleetOptions);
     const bestFleet = results.fleetOptions.filter((o: any) => totalWeight <= o.capacityTon).sort((a: any, b: any) => a.totalCost - b.totalCost)[0];
+    // IMPROVED: include saved_by from session
     const estimate: SavedEstimate = {
       id: crypto.randomUUID(),
       name: estimateName.trim(),
       savedAt: new Date().toISOString(),
+      savedBy: sessionStorage.getItem("agi-user-name") ?? "Anónimo",
       type: "polymers",
       origin,
       destination,
