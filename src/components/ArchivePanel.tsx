@@ -89,6 +89,7 @@ export function ArchivePanel() {
       Nome: e.name,
       Tipo: e.type === "polymers" ? "Polímeros" : "Construção",
       "Data/Hora": formatDate(e.savedAt),
+      "Guardado por": e.savedBy ?? "—",
       Rota: getRoute(e),
       "Peso/Metros": getWeightOrMeters(e),
       "Pombalense (€)": e.pombalenseTotalCost?.toFixed(2) ?? "—",
@@ -112,11 +113,12 @@ export function ArchivePanel() {
     doc.setFontSize(9);
     doc.text(`Exportado em: ${formatDate(new Date().toISOString())}`, 14, 22);
 
-    const head = [["Nome", "Tipo", "Data/Hora", "Rota", "Peso/Metros", "Pombalense (€)", "Frota 6t (€)", "Frota 9t (€)", "Frota 15t (€)", "Mais Económico"]];
+    const head = [["Nome", "Tipo", "Data/Hora", "Guardado por", "Rota", "Peso/Metros", "Pombalense (€)", "Frota 6t (€)", "Frota 9t (€)", "Frota 15t (€)", "Mais Económico"]];
     const body = sorted.map(e => [
       e.name,
       e.type === "polymers" ? "Polímeros" : "Construção",
       formatDate(e.savedAt),
+      e.savedBy ?? "—",
       getRoute(e),
       getWeightOrMeters(e),
       e.pombalenseTotalCost?.toFixed(2) ?? "—",
