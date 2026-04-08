@@ -10,7 +10,8 @@ import { usePombalenseExtraRate } from "@/hooks/usePombalenseExtraRate";
 
 export function ConfigPanel() {
   const [selectedOrigin, setSelectedOrigin] = useState("1");
-  const { rate: extraRate, setRate: setExtraRate } = usePombalenseExtraRate();
+  // IMPROVED: loadingRate from Supabase
+  const { rate: extraRate, setRate: setExtraRate, loadingRate } = usePombalenseExtraRate();
 
   const filteredZones = cfZones.filter(z => z.originId === Number(selectedOrigin));
 
@@ -24,15 +25,17 @@ export function ConfigPanel() {
         <CardContent className="space-y-2">
           <div className="flex items-center gap-3">
             <Label htmlFor="extra-rate" className="whitespace-nowrap">Taxa extra Pombalense (%)</Label>
+            {/* IMPROVED: disable input while loading from Supabase */}
             <Input
               id="extra-rate"
               type="number"
-              value={extraRate || ""}
+              value={loadingRate ? "" : (extraRate || "")}
               onChange={e => setExtraRate(Math.max(0, Number(e.target.value)))}
-              placeholder="0"
+              placeholder={loadingRate ? "A carregar..." : "0"}
               className="w-24"
               min={0}
               step={0.5}
+              disabled={loadingRate}
             />
           </div>
           <p className="text-xs text-muted-foreground flex items-center gap-1">

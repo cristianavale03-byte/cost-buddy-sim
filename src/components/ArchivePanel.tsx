@@ -37,7 +37,8 @@ function getDateString() {
 }
 
 export function ArchivePanel() {
-  const { savedEstimates, setSavedEstimates } = useSimulatorState();
+  // IMPROVED: loadingEstimates from Supabase
+  const { savedEstimates, setSavedEstimates, loadingEstimates } = useSimulatorState();
   const [sortKey, setSortKey] = useState<SortKey>("savedAt");
   const [sortAsc, setSortAsc] = useState(false);
 
@@ -139,6 +140,20 @@ export function ArchivePanel() {
     </TableHead>
   );
 
+  // IMPROVED: show spinner while loading from Supabase
+  if (loadingEstimates) {
+    return (
+      <Card>
+        <CardContent className="py-12">
+          <div className="text-center space-y-2">
+            <div className="h-8 w-8 mx-auto animate-spin rounded-full border-4 border-muted border-t-primary" />
+            <p className="text-sm text-muted-foreground">A carregar estimativas…</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   if (savedEstimates.length === 0) {
     return (
       <Card>
@@ -146,7 +161,7 @@ export function ArchivePanel() {
           <div className="text-center space-y-2">
             <Archive className="h-10 w-10 mx-auto text-muted-foreground" />
             <p className="text-sm text-muted-foreground">
-              Nenhuma estimativa guardada nesta sessão.
+              Nenhuma estimativa guardada.
             </p>
             <p className="text-xs text-muted-foreground">
               Simula e guarda resultados nos separadores Polímeros ou Construção.
