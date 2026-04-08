@@ -267,6 +267,8 @@ export function ArchivePanel() {
                 <SortHeader label="Nome" sortKeyVal="name" />
                 <SortHeader label="Tipo" sortKeyVal="type" />
                 <SortHeader label="Data/Hora" sortKeyVal="savedAt" />
+                {/* IMPROVED: new column for who saved the estimate */}
+                <TableHead className="text-xs py-1">Guardado por</TableHead>
                 <SortHeader label="Rota" sortKeyVal="route" />
                 <SortHeader label="Peso/Metros" sortKeyVal="weight" />
                 <SortHeader label="Pombalense (€)" sortKeyVal="pombalense" />
@@ -300,6 +302,8 @@ export function ArchivePanel() {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-xs py-2">{formatDate(e.savedAt)}</TableCell>
+                  {/* IMPROVED: display saved_by */}
+                  <TableCell className="text-xs py-2">{e.savedBy ?? "—"}</TableCell>
                   <TableCell className="text-xs py-2">{getRoute(e)}</TableCell>
                   <TableCell className="text-xs py-2">{getWeightOrMeters(e)}</TableCell>
                   <TableCell className={`text-xs py-2 font-medium ${cheapestKey === "pombalense" ? greenCls : ""}`}>{e.pombalenseTotalCost?.toFixed(2) ?? "—"} €</TableCell>
