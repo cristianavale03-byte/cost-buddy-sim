@@ -3,34 +3,45 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Trash2, TrendingDown, Info, RotateCcw, Save, Check, X } from "lucide-react";
-import { origins, cfZones } from "@/data/fleetData";
+import { origins, cfZones, fleetVehicles } from "@/data/fleetData";
 import { getEstimatedRoundTripKm } from "@/data/distanceData";
 import {
   calculateAllPolymerOptions,
+  calculateLinearMeters,
+  calculateTotalWeight,
+  selectPombalenseTable,
   findCheapest,
   findCFZone,
   type CargoLine,
 } from "@/utils/costCalculations";
 import { CostComparisonChart } from "./CostComparisonChart";
 import { usePombalenseExtraRate } from "@/hooks/usePombalenseExtraRate";
-// IMPROVED: use context for state persistence across tabs
 import { useSimulatorState, defaultPolymer, type SavedEstimate } from "@/contexts/SimulatorStateContext";
 
-export function PolymerSimulator() {
+const cargoTypeLabels: Record<CargoLine["cargoType"], string> = {
+  polymers: "Polímeros",
+  equipment: "Equipamentos",
+  construction: "Construção",
+};
+
+export function CostSimulator() {
   const { polymer, setPolymer, savedEstimates, setSavedEstimates } = useSimulatorState();
   const { rate: extraRate } = usePombalenseExtraRate();
 
-  // IMPROVED: read state from context instead of local useState
   const { origin, destination, totalKm, numFreightsManual, cargoLines, results } = polymer;
 
-  // IMPROVED: save estimate inline input state
   const [showSaveInput, setShowSaveInput] = useState(false);
   const [estimateName, setEstimateName] = useState("");
 
-  const totalWeight = cargoLines.reduce((sum, l) => sum + l.weightTon, 0);
+  const totalWeight = calculateTotalWeight(cargoLines);
+  const linearMeters = calculateLinearMeters(cargoLines);
+  const tableToUse = selectPombalenseTable(cargoLines);
+  const numClients = cargoLines.filter(l => l.client.trim() !== "").length;
+  const numDeslocacoes = Math.max(0, numClients - 1);
 
   const originId = origin.includes("Gulpilhares") || origin.includes("Espinho") ? 1
     : origin.includes("Meirinhas") ? 2
@@ -40,7 +51,6 @@ export function PolymerSimulator() {
     ? [...new Set(cfZones.filter(z => z.originId === originId).flatMap(z => z.destinations))].sort()
     : [];
 
-  // IMPROVED: helper to update context
   const update = (partial: Partial<typeof polymer>) => {
     setPolymer(prev => ({ ...prev, ...partial }));
   };
@@ -71,7 +81,6 @@ export function PolymerSimulator() {
     update({ destination: val, totalKm: estimated !== null ? estimated : totalKm });
   };
 
-  // IMPROVED: clear all fields and reset context
   const handleClear = () => {
     setPolymer({ ...defaultPolymer, cargoLines: [{ id: crypto.randomUUID(), client: "", cargoType: "polymers", weightTon: 0, numPallets: 0, lengthMeters: 0, numPlates: 0 }] });
     setShowSaveInput(false);
@@ -80,30 +89,27 @@ export function PolymerSimulator() {
 
   const simulate = () => {
     if (totalKm <= 0 || totalWeight <= 0) return;
-    const result = calculateAllPolymerOptions(cargoLines, totalKm, origin, destination, numFreightsManual);
-    
-    // IMPROVED: apply extra rate to both Pombalense and fleet costs
+    const result = calculateAllPolymerOptions(cargoLines, totalKm, origin, destination, numDeslocacoes);
+
     if (extraRate > 0) {
       const factor = 1 + extraRate / 100;
       result.pombalense.weightCost = result.pombalense.weightCost * factor;
       result.pombalense.totalCost = result.pombalense.weightCost + result.pombalense.deliveryCost;
       result.fleetOptions = result.fleetOptions.map((o: any) => ({
         ...o,
-        totalCost: o.totalCost * factor,
+        totalCost: o.warning ? 0 : o.totalCost * factor,
         costPerTon: o.costPerTon ? o.costPerTon * factor : o.costPerTon,
         costPerKm2: o.costPerKm2 ? o.costPerKm2 * factor : o.costPerKm2,
       }));
     }
-    
+
     setResults(result);
   };
 
-  // IMPROVED: save estimate to context
   const handleSaveEstimate = () => {
     if (!estimateName.trim() || !results) return;
     const cheapestOpt = findCheapest(results.pombalense.totalCost, results.fleetOptions);
     const bestFleet = results.fleetOptions.filter((o: any) => !o.warning).sort((a: any, b: any) => a.totalCost - b.totalCost)[0];
-    // IMPROVED: include saved_by from session
     const estimate: SavedEstimate = {
       id: crypto.randomUUID(),
       name: estimateName.trim(),
@@ -120,10 +126,9 @@ export function PolymerSimulator() {
       pombalensetDeliveryCost: results.pombalense.deliveryCost,
       bestFleetOption: bestFleet?.vehicleName,
       bestFleetCost: bestFleet?.totalCost,
-      // IMPROVED: save null for fleet costs when weight exceeds vehicle capacity (carga excessiva)
-      fleet6tCost: totalWeight <= 6 ? results.fleetOptions.find((o: any) => o.vehicleName?.includes("6"))?.totalCost : undefined,
-      fleet9tCost: totalWeight <= 9 ? results.fleetOptions.find((o: any) => o.vehicleName?.includes("9"))?.totalCost : undefined,
-      fleet15tCost: totalWeight <= 15 ? results.fleetOptions.find((o: any) => o.vehicleName?.includes("15"))?.totalCost : undefined,
+      fleet6tCost: !results.fleetOptions.find((o: any) => o.vehicleName?.includes("6"))?.warning ? results.fleetOptions.find((o: any) => o.vehicleName?.includes("6"))?.totalCost : undefined,
+      fleet9tCost: !results.fleetOptions.find((o: any) => o.vehicleName?.includes("9"))?.warning ? results.fleetOptions.find((o: any) => o.vehicleName?.includes("9"))?.totalCost : undefined,
+      fleet15tCost: !results.fleetOptions.find((o: any) => o.vehicleName?.includes("15"))?.warning ? results.fleetOptions.find((o: any) => o.vehicleName?.includes("15"))?.totalCost : undefined,
       cheapestOption: cheapestOpt,
       heavyLoadComparison: results.heavyLoadComparison,
       extraRateApplied: extraRate,
@@ -151,14 +156,19 @@ export function PolymerSimulator() {
       ]
     : [];
 
+  // Viable fleet vehicles for summary
+  const viableFleet = fleetVehicles.filter(v => totalWeight <= v.capacityTon && linearMeters <= v.capacityMeters);
+
+  // Check if any line has construction type to show/hide columns
+  const hasPolymersOrEquipment = cargoLines.some(l => l.cargoType === "polymers" || l.cargoType === "equipment");
+  const hasConstruction = cargoLines.some(l => l.cargoType === "construction");
+
   return (
     <div className="space-y-4">
-      {/* Combined inputs + cargo in one card */}
       <Card>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-lg">Dados do Transporte</CardTitle>
-            {/* IMPROVED: clear button to reset all fields */}
             <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleClear}>
               <RotateCcw className="h-3 w-3 mr-1" /> Limpar
             </Button>
@@ -205,18 +215,17 @@ export function PolymerSimulator() {
               <Input
                 className="h-9"
                 type="number"
-                value={numFreightsManual}
-                onChange={(e) => update({ numFreightsManual: Math.max(0, Number(e.target.value)) })}
-                placeholder="0"
-                min={0}
+                value={numDeslocacoes}
+                readOnly
+                disabled
               />
               <p className="text-[10px] text-muted-foreground flex items-center gap-1">
-                <Info className="h-3 w-3 shrink-0" /> 25 €/deslocação (Pombalense)
+                <Info className="h-3 w-3 shrink-0" /> Automático: max(0, clientes - 1) × 25 €
               </p>
             </div>
           </div>
 
-          {/* Cargo lines inline */}
+          {/* Cargo lines table */}
           <div className="border-t pt-3">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium">Cargas</span>
@@ -228,50 +237,143 @@ export function PolymerSimulator() {
               <TableHeader>
                 <TableRow>
                   <TableHead className="text-xs py-1">Cliente</TableHead>
-                  <TableHead className="text-xs py-1">Peso Bruto (ton)</TableHead>
+                  <TableHead className="text-xs py-1 w-[130px]">Tipo de Carga</TableHead>
+                  <TableHead className="text-xs py-1">Peso (ton)</TableHead>
+                  <TableHead className="text-xs py-1">Nº Paletes</TableHead>
+                  <TableHead className="text-xs py-1">Comp. (m)</TableHead>
+                  <TableHead className="text-xs py-1">Nº Placas</TableHead>
                   <TableHead className="w-10 py-1"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {cargoLines.map((line) => (
-                  <TableRow key={line.id}>
-                    <TableCell className="py-1">
-                      <Input
-                        className="h-8"
-                        value={line.client}
-                        onChange={(e) => updateLine(line.id, "client", e.target.value)}
-                        placeholder="Nome do cliente"
-                      />
-                    </TableCell>
-                    <TableCell className="py-1">
-                      <Input
-                        className="h-8"
-                        type="number"
-                        step="0.1"
-                        value={line.weightTon || ""}
-                        onChange={(e) => updateLine(line.id, "weightTon", Number(e.target.value))}
-                        placeholder="0.0"
-                      />
-                    </TableCell>
-                    <TableCell className="py-1">
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-7 w-7"
-                        onClick={() => removeLine(line.id)}
-                        disabled={cargoLines.length === 1}
-                      >
-                        <Trash2 className="h-3 w-3 text-destructive" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {cargoLines.map((line) => {
+                  const isConstruction = line.cargoType === "construction";
+                  const isPolyOrEquip = line.cargoType === "polymers" || line.cargoType === "equipment";
+                  return (
+                    <TableRow key={line.id}>
+                      <TableCell className="py-1">
+                        <Input
+                          className="h-8"
+                          value={line.client}
+                          onChange={(e) => updateLine(line.id, "client", e.target.value)}
+                          placeholder="Nome do cliente"
+                        />
+                      </TableCell>
+                      <TableCell className="py-1">
+                        <Select
+                          value={line.cargoType}
+                          onValueChange={(val) => updateLine(line.id, "cargoType", val)}
+                        >
+                          <SelectTrigger className="h-8 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="polymers">Polímeros</SelectItem>
+                            <SelectItem value="equipment">Equipamentos</SelectItem>
+                            <SelectItem value="construction">Construção</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                      {/* Peso (ton) — visible for polymers/equipment */}
+                      <TableCell className="py-1">
+                        {isPolyOrEquip ? (
+                          <Input
+                            className="h-8"
+                            type="number"
+                            step="0.1"
+                            value={line.weightTon || ""}
+                            onChange={(e) => updateLine(line.id, "weightTon", Number(e.target.value))}
+                            placeholder="0.0"
+                          />
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      {/* Nº Paletes — visible for polymers/equipment */}
+                      <TableCell className="py-1">
+                        {isPolyOrEquip ? (
+                          <Input
+                            className="h-8"
+                            type="number"
+                            min={0}
+                            value={line.numPallets || ""}
+                            onChange={(e) => updateLine(line.id, "numPallets", Math.max(0, parseInt(e.target.value) || 0))}
+                            placeholder="0"
+                          />
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      {/* Comp. (m) — visible for construction */}
+                      <TableCell className="py-1">
+                        {isConstruction ? (
+                          <Input
+                            className="h-8"
+                            type="number"
+                            step="0.1"
+                            value={line.lengthMeters || ""}
+                            onChange={(e) => updateLine(line.id, "lengthMeters", Number(e.target.value))}
+                            placeholder="0.0"
+                          />
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      {/* Nº Placas — visible for construction */}
+                      <TableCell className="py-1">
+                        {isConstruction ? (
+                          <Input
+                            className="h-8"
+                            type="number"
+                            min={1}
+                            value={line.numPlates || ""}
+                            onChange={(e) => updateLine(line.id, "numPlates", Math.max(1, parseInt(e.target.value) || 1))}
+                            placeholder="1"
+                          />
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="py-1">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7"
+                          onClick={() => removeLine(line.id)}
+                          disabled={cargoLines.length === 1}
+                        >
+                          <Trash2 className="h-3 w-3 text-destructive" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
-            <div className="mt-2 flex items-center justify-between">
-              <p className="text-xs text-muted-foreground">
-                Carga Total: <span className="font-bold text-foreground">{totalWeight.toFixed(1)} ton</span> ({(totalWeight * 1000).toFixed(0)} kg)
-              </p>
+
+            {/* Summary below table */}
+            <div className="mt-3 p-3 rounded-md bg-muted/50 space-y-1.5">
+              <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs">
+                <span>Peso total: <span className="font-bold text-foreground">{totalWeight.toFixed(1)} ton</span></span>
+                <span>Comprimento linear total: <span className="font-bold text-foreground">{linearMeters.toFixed(1)} m</span></span>
+                <span className="flex items-center gap-1">
+                  Tabela Pombalense: <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 hover:bg-blue-100">{tableToUse}</Badge>
+                </span>
+              </div>
+              {viableFleet.length > 0 && (
+                <div className="text-xs text-muted-foreground">
+                  Ocupação estimada:{" "}
+                  {viableFleet.map((v, i) => (
+                    <span key={v.name}>
+                      {i > 0 && " · "}
+                      <span className="font-medium text-foreground">{linearMeters.toFixed(1)} m</span> de {v.capacityMeters} m ({v.name})
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="mt-2 flex items-center justify-end">
               <Button size="sm" onClick={simulate} disabled={totalKm <= 0 || totalWeight <= 0}>
                 Simular Custos
               </Button>
@@ -289,7 +391,6 @@ export function PolymerSimulator() {
             </div>
           )}
 
-          {/* IMPROVED: save estimate button + inline input */}
           <div className="flex items-center gap-2 px-1">
             {!showSaveInput ? (
               <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setShowSaveInput(true)}>
@@ -315,7 +416,6 @@ export function PolymerSimulator() {
             )}
           </div>
 
-          {/* Results table + chart side by side */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <Card>
               <CardHeader className="pb-2">
@@ -407,13 +507,13 @@ export function PolymerSimulator() {
                 {results.heavyLoadComparison && (
                   <div className="mt-3 pt-3 border-t border-border space-y-1.5">
                     <p className="text-xs font-semibold">⚖️ Análise de Carga Completa</p>
-                    {numFreightsManual > 0 && (
+                    {numDeslocacoes > 0 && (
                       <p className="text-[10px] text-amber-600 dark:text-amber-400 flex items-center gap-1">
                         <Info className="h-3 w-3 shrink-0" /> Com deslocações, CF incremental ignorado
                       </p>
                     )}
                     <div className="flex justify-between text-[11px] text-muted-foreground">
-                      <span className={numFreightsManual > 0 ? "line-through opacity-50" : ""}>
+                      <span className={numDeslocacoes > 0 ? "line-through opacity-50" : ""}>
                         CF incremental
                         {results.heavyLoadComparison.optionUsed === "CF" && (
                           <span className="ml-1 text-[10px] bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-1.5 py-0.5 rounded-full">
@@ -421,7 +521,7 @@ export function PolymerSimulator() {
                           </span>
                         )}
                       </span>
-                      <span className={`font-medium text-foreground ${numFreightsManual > 0 ? "line-through opacity-50" : ""}`}>{results.heavyLoadComparison.custoCFIncremental.toFixed(2)} €</span>
+                      <span className={`font-medium text-foreground ${numDeslocacoes > 0 ? "line-through opacity-50" : ""}`}>{results.heavyLoadComparison.custoCFIncremental.toFixed(2)} €</span>
                     </div>
                     <div className="flex justify-between text-[11px] text-muted-foreground">
                       <span>
@@ -458,7 +558,7 @@ export function PolymerSimulator() {
               </CardContent>
             </Card>
 
-            <CostComparisonChart data={chartData} title="Comparação de Custos — Polímeros" />
+            <CostComparisonChart data={chartData} title="Comparação de Custos" />
           </div>
         </>
       )}
