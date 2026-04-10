@@ -203,53 +203,136 @@ export function calculatePombalenseCost(
   };
 }
 
-// IMPROVED: added capacity warning per trip, heavy load comparison for >10 ton
+// Seleciona tabela Pombalense: CC se todas as linhas forem construção, CF caso contrário
+export function selectPombalenseTable(lines: CargoLine[]): "CF" | "CC" {
+  if (lines.length > 0 && lines.every(l => l.cargoType === "construction")) return "CC";
+  return "CF";
+}
+
+// Mapeia comprimento (metros) para campo CC
+function lengthToCCField(lengthMeters: number): keyof CCPriceEntry | null {
+  if (lengthMeters <= 1.05) return "chapas2x1";
+  if (lengthMeters <= 2) return "chapas3x2";
+  if (lengthMeters <= 6) return "chapas4a6";
+  if (lengthMeters <= 8) return "chapas7a8";
+  return null; // > 8m → 3 Eixos
+}
+
+function lengthToCCLabel(lengthMeters: number): string {
+  if (lengthMeters <= 1.05) return "Chapas 2×1.05m";
+  if (lengthMeters <= 2) return "Chapas 3×2m";
+  if (lengthMeters <= 6) return "Chapas 4 a 6m";
+  if (lengthMeters <= 8) return "Chapas 7 a 8m";
+  return "> 8m (3 Eixos)";
+}
+
+// IMPROVED: refactored to receive CargoLine[] and derive all values internally
 export function calculateAllPolymerOptions(
-  totalWeightTon: number,
+  lines: CargoLine[],
   totalKm: number,
   originName: string = "",
   destinationName: string = "",
   numDeliveries: number = 0,
   manualFreights: number = 1
 ) {
-  const pombalense = calculatePombalenseCost(totalWeightTon, originName, destinationName, numDeliveries);
-  // IMPROVED: deslocações only multiply the 25€ delivery cost, not the weight cost
-  pombalense.numFreights = numDeliveries;
-  pombalense.totalCost = pombalense.weightCost + pombalense.deliveryCost;
-  
-  // IMPROVED: fleet options use automatic freight calculation, not affected by manual deslocações
-  const fleetOptions = fleetVehicles.map((v) => {
-    const result = calculateFleetCost(v, totalKm, totalWeightTon);
-    return result;
+  const totalWeightTon = calculateTotalWeight(lines);
+  const linearMeters = calculateLinearMeters(lines);
+  const tableToUse = selectPombalenseTable(lines);
+
+  let pombalense: PombalenseCostResult;
+
+  if (tableToUse === "CC") {
+    // CC logic: use longest plate to determine price category
+    const maxLength = Math.max(...lines.map(l => l.lengthMeters), 0);
+    let weightCost = 0;
+
+    if (maxLength > 8) {
+      // > 8m → 3 Eixos
+      const cost3 = getCCPrice(destinationName, "threeAxle");
+      weightCost = cost3 ?? 0;
+    } else if (totalWeightTon > 15) {
+      // > 15t → Reboque
+      const costR = getCCPrice(destinationName, "trailer");
+      weightCost = costR ?? 0;
+    } else {
+      const ccField = lengthToCCField(maxLength);
+      if (ccField) {
+        const baseCost = getCCPrice(destinationName, ccField);
+        if (baseCost !== null) {
+          weightCost = baseCost;
+        } else {
+          // Fallback: 3 Eixos → Reboque
+          const cost3 = getCCPrice(destinationName, "threeAxle");
+          const costR = getCCPrice(destinationName, "trailer");
+          weightCost = cost3 ?? costR ?? 0;
+        }
+      }
+    }
+
+    const deliveryCost = numDeliveries > 0 ? numDeliveries * deliveryCostPerEntry : 0;
+    pombalense = {
+      weightCost,
+      deliveryCost,
+      totalCost: weightCost + deliveryCost,
+      numFreights: numDeliveries,
+      zoneName: lengthToCCLabel(maxLength),
+    };
+  } else {
+    // CF logic (existing)
+    pombalense = calculatePombalenseCost(totalWeightTon, originName, destinationName, numDeliveries);
+    pombalense.numFreights = numDeliveries;
+    pombalense.totalCost = pombalense.weightCost + pombalense.deliveryCost;
+  }
+
+  // Fleet options: only viable if weight AND linear meters fit
+  const fleetOptions: FleetCostResult[] = fleetVehicles.map((v) => {
+    const weightOk = totalWeightTon <= v.capacityTon;
+    const metersOk = linearMeters <= v.capacityMeters;
+    const viable = weightOk && metersOk;
+    const totalCost = viable ? v.costPerKm * totalKm : 0;
+
+    return {
+      vehicleName: v.name,
+      costPerKm: v.costPerKm,
+      capacityTon: v.capacityTon,
+      capacityMeters: v.capacityMeters,
+      numFreights: viable ? 1 : 0,
+      totalCost,
+      costPerTon: viable && totalWeightTon > 0 ? totalCost / totalWeightTon : 0,
+      costPerKm2: viable && totalKm > 0 ? totalCost / totalKm : 0,
+      warning: !viable
+        ? (!weightOk && !metersOk ? "Carga excessiva (peso e comprimento)"
+          : !weightOk ? "Carga excessiva"
+          : "Comprimento excessivo")
+        : undefined,
+    };
   });
 
-  // IMPROVED: heavy load comparison with custoBaseEfetivo — picks cheapest option and applies to pombalense totalCost
+  // Heavy load comparison (CF table only, >= 10 ton, not Meirinhas)
   let heavyLoadComparison: HeavyLoadComparison | null = null;
   const isMeirinhas = originName.includes("Meirinhas");
-  
-  // IMPROVED: trigger heavy load analysis at >= 10 ton (inclusive)
-  if (totalWeightTon >= 10 && !isMeirinhas) {
+
+  if (tableToUse === "CF" && totalWeightTon >= 10 && !isMeirinhas) {
     const zone = findCFZone(originName, destinationName);
     const beyondRate = zone?.beyondTenTonPerTon ?? 0;
     const custoCFIncremental = totalWeightTon * beyondRate;
-    
+
     const custoThreeAxle = getCCPrice(destinationName, "threeAxle");
     let custoTrailer: number | null = null;
     let suggestThreeAxle = false;
     let suggestTrailer = false;
-    
-    // IMPROVED: when numDeliveries > 0, skip CF incremental — only consider 3 Eixos or Reboque
+
     const skipCFIncremental = numDeliveries > 0;
-    
+
     let custoBaseEfetivo = skipCFIncremental ? Infinity : custoCFIncremental;
     let optionUsed: "CF" | "3Eixos" | "Reboque" = skipCFIncremental ? "3Eixos" : "CF";
-    
+
     if (custoThreeAxle !== null && custoThreeAxle < custoBaseEfetivo) {
       custoBaseEfetivo = custoThreeAxle;
       optionUsed = "3Eixos";
       suggestThreeAxle = true;
     }
-    
+
     custoTrailer = getCCPrice(destinationName, "trailer");
     if (custoTrailer !== null && custoTrailer < custoBaseEfetivo) {
       custoBaseEfetivo = custoTrailer;
@@ -257,13 +340,12 @@ export function calculateAllPolymerOptions(
       suggestTrailer = true;
       suggestThreeAxle = false;
     }
-    
-    // If skipping CF and no CC options available, fall back to CF incremental
+
     if (skipCFIncremental && custoBaseEfetivo === Infinity) {
       custoBaseEfetivo = custoCFIncremental;
       optionUsed = "CF";
     }
-    
+
     heavyLoadComparison = {
       custoCFIncremental,
       custoThreeAxle,
@@ -273,8 +355,7 @@ export function calculateAllPolymerOptions(
       custoBaseEfetivo,
       optionUsed,
     };
-    
-    // IMPROVED: apply custoBaseEfetivo to pombalense totalCost
+
     pombalense.weightCost = custoBaseEfetivo;
     pombalense.totalCost = custoBaseEfetivo + pombalense.deliveryCost;
   }
