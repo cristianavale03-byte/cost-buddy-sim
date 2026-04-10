@@ -102,7 +102,7 @@ export function PolymerSimulator() {
   const handleSaveEstimate = () => {
     if (!estimateName.trim() || !results) return;
     const cheapestOpt = findCheapest(results.pombalense.totalCost, results.fleetOptions);
-    const bestFleet = results.fleetOptions.filter((o: any) => totalWeight <= o.capacityTon).sort((a: any, b: any) => a.totalCost - b.totalCost)[0];
+    const bestFleet = results.fleetOptions.filter((o: any) => !o.warning).sort((a: any, b: any) => a.totalCost - b.totalCost)[0];
     // IMPROVED: include saved_by from session
     const estimate: SavedEstimate = {
       id: crypto.randomUUID(),
