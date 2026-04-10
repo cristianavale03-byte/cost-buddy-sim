@@ -11,7 +11,13 @@ import {
 export interface CargoLine {
   id: string;
   client: string;
+  cargoType: "polymers" | "equipment" | "construction";
+  // Polímeros e Equipamentos — por peso e paletes
   weightTon: number;
+  numPallets: number; // nº de paletes (cada par ocupa 1.2m de comprimento)
+  // Construção — por comprimento
+  lengthMeters: number; // comprimento da placa/chapa em metros
+  numPlates: number; // nº de placas/chapas
 }
 
 export interface ConstructionLine {
