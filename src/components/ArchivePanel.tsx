@@ -43,6 +43,8 @@ export function ArchivePanel() {
   const { savedEstimates, setSavedEstimates, loadingEstimates } = useSimulatorState();
   const [sortKey, setSortKey] = useState<SortKey>("savedAt");
   const [sortAsc, setSortAsc] = useState(false);
+  // IMPROVED: detail dialog state
+  const [detailEstimate, setDetailEstimate] = useState<SavedEstimate | null>(null);
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
