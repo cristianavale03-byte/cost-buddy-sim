@@ -289,6 +289,10 @@ export function ArchivePanel() {
             <TableBody>
               {sorted.map(e => {
                 // IMPROVED: highlight cheapest cost cell with green background
+                const weight = e.totalWeightTon ?? e.weightTon ?? 0;
+                const excessive6 = weight > 6;
+                const excessive9 = weight > 9;
+                const excessive15 = weight > 15;
                 const costs = [
                   { key: "pombalense", val: e.pombalenseTotalCost },
                   { key: "fleet6t", val: e.fleet6tCost },
@@ -298,6 +302,7 @@ export function ArchivePanel() {
                 const minCost = costs.length > 0 ? Math.min(...costs.map(c => c.val!)) : null;
                 const cheapestKey = costs.find(c => c.val === minCost)?.key;
                 const greenCls = "bg-green-100 dark:bg-green-900/40";
+                const excessiveCls = "text-destructive font-medium";
 
                 return (
                 <TableRow key={e.id}>
