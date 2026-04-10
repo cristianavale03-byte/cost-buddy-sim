@@ -1,6 +1,6 @@
 // IMPROVED: centralized state context — estimates now persisted in Supabase
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
-import type { CargoLine, ConstructionLine } from "@/utils/costCalculations";
+import type { CargoLine } from "@/utils/costCalculations";
 import { fetchEstimates, insertEstimate, deleteEstimate as deleteEstimateSvc, clearAllEstimates } from "@/services/supabaseService";
 
 export interface SavedEstimate {
@@ -41,19 +41,9 @@ interface PolymerState {
   results: any | null;
 }
 
-interface ConstructionState {
-  destination: string;
-  totalKm: number;
-  lines: ConstructionLine[];
-  numFreightsManual: number;
-  results: any | null;
-}
-
 interface SimulatorStateContextType {
   polymer: PolymerState;
   setPolymer: React.Dispatch<React.SetStateAction<PolymerState>>;
-  construction: ConstructionState;
-  setConstruction: React.Dispatch<React.SetStateAction<ConstructionState>>;
   savedEstimates: SavedEstimate[];
   setSavedEstimates: React.Dispatch<React.SetStateAction<SavedEstimate[]>>;
   loadingEstimates: boolean;
@@ -65,14 +55,6 @@ const defaultPolymer: PolymerState = {
   totalKm: 0,
   numFreightsManual: 0,
   cargoLines: [{ id: crypto.randomUUID(), client: "", cargoType: "polymers", weightTon: 0, numPallets: 0, lengthMeters: 0, numPlates: 0 }],
-  results: null,
-};
-
-const defaultConstruction: ConstructionState = {
-  destination: "",
-  totalKm: 0,
-  lines: [{ id: crypto.randomUUID(), numPlates: 1, dimensionLabel: "", lengthMeters: 0, weightTon: 0 }],
-  numFreightsManual: 0,
   results: null,
 };
 
@@ -144,7 +126,6 @@ function estimateToDb(e: SavedEstimate): Record<string, unknown> {
 
 export function SimulatorStateProvider({ children }: { children: ReactNode }) {
   const [polymer, setPolymer] = useState<PolymerState>(defaultPolymer);
-  const [construction, setConstruction] = useState<ConstructionState>(defaultConstruction);
   const [savedEstimates, setSavedEstimatesLocal] = useState<SavedEstimate[]>([]);
   const [loadingEstimates, setLoadingEstimates] = useState(true);
 
@@ -179,7 +160,7 @@ export function SimulatorStateProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <SimulatorStateContext.Provider value={{ polymer, setPolymer, construction, setConstruction, savedEstimates, setSavedEstimates, loadingEstimates }}>
+    <SimulatorStateContext.Provider value={{ polymer, setPolymer, savedEstimates, setSavedEstimates, loadingEstimates }}>
       {children}
     </SimulatorStateContext.Provider>
   );
@@ -191,4 +172,4 @@ export function useSimulatorState() {
   return ctx;
 }
 
-export { defaultPolymer, defaultConstruction };
+export { defaultPolymer };
