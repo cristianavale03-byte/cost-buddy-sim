@@ -289,6 +289,10 @@ export function ArchivePanel() {
             <TableBody>
               {sorted.map(e => {
                 // IMPROVED: highlight cheapest cost cell with green background
+                const weight = e.totalWeightTon ?? e.weightTon ?? 0;
+                const excessive6 = weight > 6;
+                const excessive9 = weight > 9;
+                const excessive15 = weight > 15;
                 const costs = [
                   { key: "pombalense", val: e.pombalenseTotalCost },
                   { key: "fleet6t", val: e.fleet6tCost },
@@ -298,6 +302,7 @@ export function ArchivePanel() {
                 const minCost = costs.length > 0 ? Math.min(...costs.map(c => c.val!)) : null;
                 const cheapestKey = costs.find(c => c.val === minCost)?.key;
                 const greenCls = "bg-green-100 dark:bg-green-900/40";
+                const excessiveCls = "text-destructive font-medium";
 
                 return (
                 <TableRow key={e.id}>
@@ -313,9 +318,9 @@ export function ArchivePanel() {
                   <TableCell className="text-xs py-2">{getRoute(e)}</TableCell>
                   <TableCell className="text-xs py-2">{getWeightOrMeters(e)}</TableCell>
                   <TableCell className={`text-xs py-2 font-medium ${cheapestKey === "pombalense" ? greenCls : ""}`}>{e.pombalenseTotalCost?.toFixed(2) ?? "—"} €</TableCell>
-                  <TableCell className={`text-xs py-2 ${cheapestKey === "fleet6t" ? greenCls : ""}`}>{e.fleet6tCost?.toFixed(2) ?? "—"} €</TableCell>
-                  <TableCell className={`text-xs py-2 ${cheapestKey === "fleet9t" ? greenCls : ""}`}>{e.fleet9tCost?.toFixed(2) ?? "—"} €</TableCell>
-                  <TableCell className={`text-xs py-2 ${cheapestKey === "fleet15t" ? greenCls : ""}`}>{e.fleet15tCost?.toFixed(2) ?? "—"} €</TableCell>
+                  <TableCell className={`text-xs py-2 ${excessive6 && e.fleet6tCost == null ? excessiveCls : cheapestKey === "fleet6t" ? greenCls : ""}`}>{excessive6 && e.fleet6tCost == null ? "Carga excessiva" : e.fleet6tCost?.toFixed(2) != null ? `${e.fleet6tCost!.toFixed(2)} €` : "—"}</TableCell>
+                  <TableCell className={`text-xs py-2 ${excessive9 && e.fleet9tCost == null ? excessiveCls : cheapestKey === "fleet9t" ? greenCls : ""}`}>{excessive9 && e.fleet9tCost == null ? "Carga excessiva" : e.fleet9tCost?.toFixed(2) != null ? `${e.fleet9tCost!.toFixed(2)} €` : "—"}</TableCell>
+                  <TableCell className={`text-xs py-2 ${excessive15 && e.fleet15tCost == null ? excessiveCls : cheapestKey === "fleet15t" ? greenCls : ""}`}>{excessive15 && e.fleet15tCost == null ? "Carga excessiva" : e.fleet15tCost?.toFixed(2) != null ? `${e.fleet15tCost!.toFixed(2)} €` : "—"}</TableCell>
                   <TableCell className="text-xs py-2">
                     {e.cheapestOption === "Pombalense" ? (
                       <Badge className="text-[10px] bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 hover:bg-green-100">

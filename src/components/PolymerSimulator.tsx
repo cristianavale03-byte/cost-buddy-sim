@@ -120,10 +120,10 @@ export function PolymerSimulator() {
       pombalensetDeliveryCost: results.pombalense.deliveryCost,
       bestFleetOption: bestFleet?.vehicleName,
       bestFleetCost: bestFleet?.totalCost,
-      // IMPROVED: individual fleet costs for archive columns
-      fleet6tCost: results.fleetOptions.find((o: any) => o.vehicleName?.includes("6"))?.totalCost,
-      fleet9tCost: results.fleetOptions.find((o: any) => o.vehicleName?.includes("9"))?.totalCost,
-      fleet15tCost: results.fleetOptions.find((o: any) => o.vehicleName?.includes("15"))?.totalCost,
+      // IMPROVED: save null for fleet costs when weight exceeds vehicle capacity (carga excessiva)
+      fleet6tCost: totalWeight <= 6 ? results.fleetOptions.find((o: any) => o.vehicleName?.includes("6"))?.totalCost : undefined,
+      fleet9tCost: totalWeight <= 9 ? results.fleetOptions.find((o: any) => o.vehicleName?.includes("9"))?.totalCost : undefined,
+      fleet15tCost: totalWeight <= 15 ? results.fleetOptions.find((o: any) => o.vehicleName?.includes("15"))?.totalCost : undefined,
       cheapestOption: cheapestOpt,
       heavyLoadComparison: results.heavyLoadComparison,
       extraRateApplied: extraRate,

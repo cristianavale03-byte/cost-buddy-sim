@@ -324,10 +324,10 @@ export function ConstructionSimulator() {
       pombalenseTotalCost: results.custoFinal,
       bestFleetOption: bestFleet?.vehicleName,
       bestFleetCost: bestFleet?.totalCost,
-      // IMPROVED: individual fleet costs for archive columns
-      fleet6tCost: results.fleetOptions.find((o: any) => o.vehicleName?.includes("6"))?.totalCost,
-      fleet9tCost: results.fleetOptions.find((o: any) => o.vehicleName?.includes("9"))?.totalCost,
-      fleet15tCost: results.fleetOptions.find((o: any) => o.vehicleName?.includes("15"))?.totalCost,
+      // IMPROVED: save null for fleet costs when weight/length exceeds vehicle capacity (carga excessiva)
+      fleet6tCost: results.fleetOptions.find((o: any) => o.vehicleName?.includes("6") && !o.weightExcessive && !o.lengthExcessive)?.totalCost,
+      fleet9tCost: results.fleetOptions.find((o: any) => o.vehicleName?.includes("9") && !o.weightExcessive && !o.lengthExcessive)?.totalCost,
+      fleet15tCost: results.fleetOptions.find((o: any) => o.vehicleName?.includes("15") && !o.weightExcessive && !o.lengthExcessive)?.totalCost,
       cheapestOption: cheapestOpt,
       extraRateApplied: extraRate,
     };
