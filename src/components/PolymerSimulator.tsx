@@ -143,7 +143,7 @@ export function PolymerSimulator() {
     ? [
         ...(zoneFound ? [{ name: "Pombalense", custo: Math.round(results.pombalense.totalCost * 100) / 100 }] : []),
         ...results.fleetOptions
-          .filter((o: any) => totalWeight <= o.capacityTon)
+          .filter((o: any) => !o.warning)
           .map((o: any) => ({
             name: o.vehicleName,
             custo: Math.round(o.totalCost * 100) / 100,
