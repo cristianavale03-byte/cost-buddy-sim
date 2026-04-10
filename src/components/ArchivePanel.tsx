@@ -327,7 +327,11 @@ export function ArchivePanel() {
                       </Badge>
                     ) : "—"}
                   </TableCell>
-                  <TableCell className="py-2">
+                  <TableCell className="py-2 flex gap-1">
+                    {/* IMPROVED: detail view button */}
+                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setDetailEstimate(e)}>
+                      <Eye className="h-3 w-3 text-muted-foreground" />
+                    </Button>
                     <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleDelete(e.id)}>
                       <Trash2 className="h-3 w-3 text-destructive" />
                     </Button>
