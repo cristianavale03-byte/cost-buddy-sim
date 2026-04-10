@@ -4,8 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, FileSpreadsheet, FileText, Archive, ArrowUpDown } from "lucide-react";
+import { Trash2, FileSpreadsheet, FileText, Archive, ArrowUpDown, Eye } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useSimulatorState, type SavedEstimate } from "@/contexts/SimulatorStateContext";
+import type { CargoLine } from "@/utils/costCalculations";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -41,6 +43,8 @@ export function ArchivePanel() {
   const { savedEstimates, setSavedEstimates, loadingEstimates } = useSimulatorState();
   const [sortKey, setSortKey] = useState<SortKey>("savedAt");
   const [sortAsc, setSortAsc] = useState(false);
+  // IMPROVED: detail dialog state
+  const [detailEstimate, setDetailEstimate] = useState<SavedEstimate | null>(null);
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -323,7 +327,11 @@ export function ArchivePanel() {
                       </Badge>
                     ) : "—"}
                   </TableCell>
-                  <TableCell className="py-2">
+                  <TableCell className="py-2 flex gap-1">
+                    {/* IMPROVED: detail view button */}
+                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setDetailEstimate(e)}>
+                      <Eye className="h-3 w-3 text-muted-foreground" />
+                    </Button>
                     <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleDelete(e.id)}>
                       <Trash2 className="h-3 w-3 text-destructive" />
                     </Button>
@@ -335,6 +343,79 @@ export function ArchivePanel() {
           </Table>
         </CardContent>
       </Card>
+
+      {/* IMPROVED: detail popup for estimate */}
+      <Dialog open={!!detailEstimate} onOpenChange={(open) => { if (!open) setDetailEstimate(null); }}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-base">Detalhe — {detailEstimate?.name}</DialogTitle>
+          </DialogHeader>
+          {detailEstimate && (
+            <div className="space-y-3 text-sm">
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                <DetailRow label="Tipo" value={detailEstimate.type === "polymers" ? "Polímeros" : "Construção"} />
+                <DetailRow label="Data/Hora" value={formatDate(detailEstimate.savedAt)} />
+                <DetailRow label="Guardado por" value={detailEstimate.savedBy ?? "Anónimo"} />
+                <DetailRow label="Origem" value={detailEstimate.origin ?? "—"} />
+                <DetailRow label="Destino" value={detailEstimate.destination ?? "—"} />
+                <DetailRow label="Km totais" value={detailEstimate.totalKm != null ? `${detailEstimate.totalKm} km` : "—"} />
+                <DetailRow label="Peso total" value={detailEstimate.totalWeightTon != null ? `${detailEstimate.totalWeightTon.toFixed(2)} ton` : detailEstimate.weightTon != null ? `${detailEstimate.weightTon.toFixed(2)} ton` : "—"} />
+                {detailEstimate.totalMeters != null && <DetailRow label="Metros totais" value={`${detailEstimate.totalMeters.toFixed(1)} m`} />}
+                {detailEstimate.largestPlateLabel && <DetailRow label="Maior placa" value={detailEstimate.largestPlateLabel} />}
+                <DetailRow label="Nº deslocações" value={detailEstimate.numFreights != null ? String(detailEstimate.numFreights) : "—"} />
+                {detailEstimate.extraRateApplied != null && detailEstimate.extraRateApplied > 0 && (
+                  <DetailRow label="Taxa extra aplicada" value={`${detailEstimate.extraRateApplied}%`} />
+                )}
+              </div>
+
+              {/* Cargo lines detail for polymers */}
+              {detailEstimate.type === "polymers" && detailEstimate.cargoLines && (detailEstimate.cargoLines as CargoLine[]).length > 0 && (
+                <div>
+                  <p className="font-semibold text-xs mb-1">Clientes ({(detailEstimate.cargoLines as CargoLine[]).length})</p>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="text-xs py-1">Cliente</TableHead>
+                        <TableHead className="text-xs py-1 text-right">Peso (ton)</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {(detailEstimate.cargoLines as CargoLine[]).map((line, i) => (
+                        <TableRow key={i}>
+                          <TableCell className="text-xs py-1">{line.client || "—"}</TableCell>
+                          <TableCell className="text-xs py-1 text-right">{line.weightTon?.toFixed(2) ?? "0"}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+
+              {/* Cost summary */}
+              <div>
+                <p className="font-semibold text-xs mb-1">Custos</p>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                  <DetailRow label="Pombalense" value={detailEstimate.pombalenseTotalCost != null ? `${detailEstimate.pombalenseTotalCost.toFixed(2)} €` : detailEstimate.constructionPombalenseCost != null ? `${detailEstimate.constructionPombalenseCost.toFixed(2)} €` : "—"} />
+                  <DetailRow label="Frota 6t" value={detailEstimate.fleet6tCost != null ? `${detailEstimate.fleet6tCost.toFixed(2)} €` : "—"} />
+                  <DetailRow label="Frota 9t" value={detailEstimate.fleet9tCost != null ? `${detailEstimate.fleet9tCost.toFixed(2)} €` : "—"} />
+                  <DetailRow label="Frota 15t" value={detailEstimate.fleet15tCost != null ? `${detailEstimate.fleet15tCost.toFixed(2)} €` : "—"} />
+                  <DetailRow label="Mais económico" value={detailEstimate.cheapestOption ?? "—"} />
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
+  );
+}
+
+// IMPROVED: helper component for detail rows
+function DetailRow({ label, value }: { label: string; value: string }) {
+  return (
+    <>
+      <span className="text-muted-foreground">{label}</span>
+      <span className="font-medium">{value}</span>
+    </>
   );
 }
