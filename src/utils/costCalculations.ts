@@ -20,6 +20,23 @@ export interface CargoLine {
   numPlates: number; // nº de placas/chapas
 }
 
+// Calcula metros lineares totais a partir das linhas de carga
+export function calculateLinearMeters(lines: CargoLine[]): number {
+  return lines.reduce((sum, line) => {
+    if (line.cargoType === "polymers" || line.cargoType === "equipment") {
+      // 2 paletes lado a lado = 1.2m de comprimento
+      return sum + Math.ceil(line.numPallets / 2) * 1.2;
+    }
+    // construction — comprimento da placa
+    return sum + line.lengthMeters;
+  }, 0);
+}
+
+// Soma o peso total (ton) de todas as linhas
+export function calculateTotalWeight(lines: CargoLine[]): number {
+  return lines.reduce((sum, line) => sum + line.weightTon, 0);
+}
+
 export interface ConstructionLine {
   id: string;
   numPlates: number;
