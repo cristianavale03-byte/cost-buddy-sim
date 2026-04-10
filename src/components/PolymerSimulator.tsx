@@ -40,8 +40,7 @@ export function CostSimulator() {
   const totalWeight = calculateTotalWeight(cargoLines);
   const linearMeters = calculateLinearMeters(cargoLines);
   const tableToUse = selectPombalenseTable(cargoLines);
-  const numClients = cargoLines.filter(l => l.client.trim() !== "").length;
-  const numDeslocacoes = Math.max(0, numClients - 1);
+  const numDeslocacoes = numFreightsManual;
 
   const originId = origin.includes("Gulpilhares") || origin.includes("Espinho") ? 1
     : origin.includes("Meirinhas") ? 2
