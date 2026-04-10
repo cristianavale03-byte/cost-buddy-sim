@@ -58,9 +58,6 @@ const defaultPolymer: PolymerState = {
   results: null,
 };
 
-
-const SimulatorStateContext = createContext<SimulatorStateContextType | null>(null);
-
 const SimulatorStateContext = createContext<SimulatorStateContextType | null>(null);
 
 // IMPROVED: map DB row (snake_case) to app interface (camelCase)
@@ -129,7 +126,6 @@ function estimateToDb(e: SavedEstimate): Record<string, unknown> {
 
 export function SimulatorStateProvider({ children }: { children: ReactNode }) {
   const [polymer, setPolymer] = useState<PolymerState>(defaultPolymer);
-  const [construction, setConstruction] = useState<ConstructionState>(defaultConstruction);
   const [savedEstimates, setSavedEstimatesLocal] = useState<SavedEstimate[]>([]);
   const [loadingEstimates, setLoadingEstimates] = useState(true);
 
