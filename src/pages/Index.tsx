@@ -1,10 +1,9 @@
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CostSimulator } from "@/components/PolymerSimulator";
-import { ConstructionSimulator } from "@/components/ConstructionSimulator";
 import { ConfigPanel } from "@/components/ConfigPanel";
 import { ArchivePanel } from "@/components/ArchivePanel";
-import { Truck, Package2, Building2, Settings, Archive } from "lucide-react";
+import { Truck, Package2, Settings, Archive } from "lucide-react";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("simulator");
@@ -27,14 +26,10 @@ const Index = () => {
 
       <main className="container mx-auto px-4 py-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 max-w-2xl">
+          <TabsList className="grid w-full grid-cols-3 max-w-2xl">
             <TabsTrigger value="simulator" className="flex items-center gap-2">
               <Package2 className="h-4 w-4" />
               <span className="hidden sm:inline">Simulador de Custos</span>
-            </TabsTrigger>
-            <TabsTrigger value="construction" className="flex items-center gap-2">
-              <Building2 className="h-4 w-4" />
-              <span className="hidden sm:inline">Construção</span>
             </TabsTrigger>
             <TabsTrigger value="archive" className="flex items-center gap-2">
               <Archive className="h-4 w-4" />
@@ -48,10 +43,6 @@ const Index = () => {
 
           <TabsContent value="simulator">
             <CostSimulator />
-          </TabsContent>
-
-          <TabsContent value="construction">
-            <ConstructionSimulator />
           </TabsContent>
 
           <TabsContent value="archive">
