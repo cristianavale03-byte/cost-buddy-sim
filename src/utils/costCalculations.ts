@@ -435,7 +435,7 @@ export function findCheapest(
   let cheapest = "Pombalense";
 
   for (const opt of fleetOptions) {
-    if (opt.totalCost < minCost) {
+    if (!opt.warning && opt.totalCost < minCost) {
       minCost = opt.totalCost;
       cheapest = opt.vehicleName;
     }
