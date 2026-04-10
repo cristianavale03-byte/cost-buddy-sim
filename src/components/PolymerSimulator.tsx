@@ -214,12 +214,12 @@ export function CostSimulator() {
               <Input
                 className="h-9"
                 type="number"
-                value={numDeslocacoes}
-                readOnly
-                disabled
+                min={0}
+                value={numFreightsManual}
+                onChange={e => update("numFreightsManual", Math.max(0, Number(e.target.value)))}
               />
               <p className="text-[10px] text-muted-foreground flex items-center gap-1">
-                <Info className="h-3 w-3 shrink-0" /> Automático: max(0, clientes - 1) × 25 €
+                <Info className="h-3 w-3 shrink-0" /> 25 € por deslocação extra
               </p>
             </div>
           </div>
