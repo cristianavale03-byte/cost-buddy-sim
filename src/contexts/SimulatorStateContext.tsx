@@ -164,7 +164,7 @@ export function SimulatorStateProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <SimulatorStateContext.Provider value={{ polymer, setPolymer, construction, setConstruction, savedEstimates, setSavedEstimates, loadingEstimates }}>
+    <SimulatorStateContext.Provider value={{ polymer, setPolymer, savedEstimates, setSavedEstimates, loadingEstimates }}>
       {children}
     </SimulatorStateContext.Provider>
   );
@@ -176,4 +176,4 @@ export function useSimulatorState() {
   return ctx;
 }
 
-export { defaultPolymer, defaultConstruction };
+export { defaultPolymer };
