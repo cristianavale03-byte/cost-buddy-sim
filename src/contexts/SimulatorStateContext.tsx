@@ -64,7 +64,7 @@ const defaultPolymer: PolymerState = {
   destination: "",
   totalKm: 0,
   numFreightsManual: 0,
-  cargoLines: [{ id: crypto.randomUUID(), client: "", weightTon: 0 }],
+  cargoLines: [{ id: crypto.randomUUID(), client: "", cargoType: "polymers", weightTon: 0, numPallets: 0, lengthMeters: 0, numPlates: 0 }],
   results: null,
 };
 
