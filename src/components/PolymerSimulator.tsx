@@ -374,34 +374,29 @@ export function PolymerSimulator() {
                       <TableCell className="text-right text-xs py-2">{zoneFound && totalKm > 0 ? (results.pombalense.totalCost / totalKm).toFixed(2) : "—"}</TableCell>
                     </TableRow>
                     {results.fleetOptions.map((opt: any) => {
-                      const isWeightExcessive = totalWeight > opt.capacityTon;
+                      const hasWarning = !!opt.warning;
                       return (
                         <TableRow
                           key={opt.vehicleName}
-                          className={isWeightExcessive ? "bg-destructive/10" : cheapest === opt.vehicleName ? "bg-green-50 dark:bg-green-950/30" : ""}
+                          className={hasWarning ? "bg-destructive/10" : cheapest === opt.vehicleName ? "bg-green-50 dark:bg-green-950/30" : ""}
                         >
                           <TableCell className="font-medium text-xs py-2">
                             {opt.vehicleName}
-                            {isWeightExcessive && (
+                            {hasWarning && (
                               <span className="ml-1 text-[10px] bg-destructive/20 text-destructive px-1.5 py-0.5 rounded-full">
-                                Carga excessiva
-                              </span>
-                            )}
-                            {!isWeightExcessive && opt.warning && (
-                              <span className="ml-1 text-[10px] bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200 px-1.5 py-0.5 rounded-full">
                                 {opt.warning}
                               </span>
                             )}
-                            {!isWeightExcessive && !opt.warning && cheapest === opt.vehicleName && (
+                            {!hasWarning && cheapest === opt.vehicleName && (
                               <span className="ml-1 text-[10px] bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-1.5 py-0.5 rounded-full">
                                 Mais económico
                               </span>
                             )}
                           </TableCell>
-                          <TableCell className="text-right text-xs py-2">{isWeightExcessive ? "—" : opt.numFreights}</TableCell>
-                          <TableCell className="text-right font-bold text-xs py-2">{isWeightExcessive ? "—" : `${opt.totalCost.toFixed(2)} €`}</TableCell>
-                          <TableCell className="text-right text-xs py-2">{isWeightExcessive ? "—" : (opt.costPerTon?.toFixed(2) ?? "-")}</TableCell>
-                          <TableCell className="text-right text-xs py-2">{isWeightExcessive ? "—" : (opt.costPerKm2?.toFixed(2) ?? "-")}</TableCell>
+                          <TableCell className="text-right text-xs py-2">{hasWarning ? "—" : opt.numFreights}</TableCell>
+                          <TableCell className="text-right font-bold text-xs py-2">{hasWarning ? "—" : `${opt.totalCost.toFixed(2)} €`}</TableCell>
+                          <TableCell className="text-right text-xs py-2">{hasWarning ? "—" : (opt.costPerTon?.toFixed(2) ?? "-")}</TableCell>
+                          <TableCell className="text-right text-xs py-2">{hasWarning ? "—" : (opt.costPerKm2?.toFixed(2) ?? "-")}</TableCell>
                         </TableRow>
                       );
                     })}
