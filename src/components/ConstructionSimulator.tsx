@@ -605,7 +605,7 @@ export function ConstructionSimulator() {
                       const isExcessive = opt.lengthExcessive || opt.weightExcessive;
                       const badges: string[] = [];
                       if (opt.lengthExcessive) badges.push("Comprimento excessivo");
-                      if (opt.weightExcessive) badges.push("Peso excessivo");
+                      if (opt.weightExcessive) badges.push("Carga excessiva");
                       return (
                         <TableRow
                           key={opt.vehicleName}

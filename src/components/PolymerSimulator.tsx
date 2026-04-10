@@ -384,7 +384,7 @@ export function PolymerSimulator() {
                             {opt.vehicleName}
                             {isWeightExcessive && (
                               <span className="ml-1 text-[10px] bg-destructive/20 text-destructive px-1.5 py-0.5 rounded-full">
-                                Peso excessivo
+                                Carga excessiva
                               </span>
                             )}
                             {!isWeightExcessive && opt.warning && (
