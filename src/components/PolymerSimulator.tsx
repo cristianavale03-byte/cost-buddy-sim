@@ -49,7 +49,7 @@ export function PolymerSimulator() {
   const setResults = (r: typeof results) => update({ results: r });
 
   const addLine = () => {
-    setCargoLines([...cargoLines, { id: crypto.randomUUID(), client: "", weightTon: 0 }]);
+    setCargoLines([...cargoLines, { id: crypto.randomUUID(), client: "", cargoType: "polymers", weightTon: 0, numPallets: 0, lengthMeters: 0, numPlates: 0 }]);
   };
 
   const removeLine = (id: string) => {
@@ -73,7 +73,7 @@ export function PolymerSimulator() {
 
   // IMPROVED: clear all fields and reset context
   const handleClear = () => {
-    setPolymer({ ...defaultPolymer, cargoLines: [{ id: crypto.randomUUID(), client: "", weightTon: 0 }] });
+    setPolymer({ ...defaultPolymer, cargoLines: [{ id: crypto.randomUUID(), client: "", cargoType: "polymers", weightTon: 0, numPallets: 0, lengthMeters: 0, numPlates: 0 }] });
     setShowSaveInput(false);
     setEstimateName("");
   };
