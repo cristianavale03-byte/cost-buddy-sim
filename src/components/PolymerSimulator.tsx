@@ -216,7 +216,7 @@ export function CostSimulator() {
                 type="number"
                 min={0}
                 value={numFreightsManual}
-                onChange={e => update("numFreightsManual", Math.max(0, Number(e.target.value)))}
+                onChange={e => update({ numFreightsManual: Math.max(0, Number(e.target.value)) })}
               />
               <p className="text-[10px] text-muted-foreground flex items-center gap-1">
                 <Info className="h-3 w-3 shrink-0" /> 25 € por deslocação extra
