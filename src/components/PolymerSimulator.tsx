@@ -80,7 +80,7 @@ export function PolymerSimulator() {
 
   const simulate = () => {
     if (totalKm <= 0 || totalWeight <= 0) return;
-    const result = calculateAllPolymerOptions(totalWeight, totalKm, origin, destination, numFreightsManual);
+    const result = calculateAllPolymerOptions(cargoLines, totalKm, origin, destination, numFreightsManual);
     
     // IMPROVED: apply extra rate to both Pombalense and fleet costs
     if (extraRate > 0) {
