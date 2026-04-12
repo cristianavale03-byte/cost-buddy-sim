@@ -272,11 +272,16 @@ export function calculateAllPolymerOptions(
         weightCost = cost3 ?? costR ?? 0;
         ccPricingLabel = cost3 !== null ? "3 Eixos (comprimento > 8m)" : "Reboque (comprimento > 8m)";
       }
-    } else if (numDeliveries > 2) {
-      // > 2 deliveries and weight < 15t → 3 Eixos
+    } else if (numDeliveries > 2 || totalWeightTon > 8) {
+      // > 2 deliveries OR > 8 ton (and < 15t) → 3 Eixos
       const cost3 = getCCPrice(destinationName, "threeAxle");
       weightCost = cost3 ?? 0;
-      ccPricingLabel = "3 Eixos (> 2 deslocações)";
+      const reason = numDeliveries > 2 && totalWeightTon > 8
+        ? "> 2 deslocações e > 8 ton"
+        : numDeliveries > 2
+        ? "> 2 deslocações"
+        : "> 8 ton";
+      ccPricingLabel = `3 Eixos (${reason})`;
     } else {
       const ccField = lengthToCCField(maxLength);
       if (ccField) {
