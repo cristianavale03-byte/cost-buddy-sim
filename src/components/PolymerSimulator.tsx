@@ -89,8 +89,10 @@ export function CostSimulator() {
 
   const handleClear = () => {
     setPolymer({ ...defaultPolymer, cargoLines: [{ id: crypto.randomUUID(), client: "", cargoType: "polymers", weightTon: 0, numPallets: 0, lengthMeters: 0, numPlates: 0 }] });
-    setShowSaveInput(false);
+    setShowSaveDialog(false);
     setEstimateName("");
+    setChosenOption("");
+    setObservations("");
   };
 
   const [baseWeightCost, setBaseWeightCost] = useState<number | null>(null);
@@ -148,10 +150,14 @@ export function CostSimulator() {
       cheapestOption: cheapestOpt,
       heavyLoadComparison: results.heavyLoadComparison,
       extraRateApplied: extraRate,
+      chosenOption: chosenOption || undefined,
+      observations: observations.trim() || undefined,
     };
     setSavedEstimates(prev => [...prev, estimate]);
-    setShowSaveInput(false);
+    setShowSaveDialog(false);
     setEstimateName("");
+    setChosenOption("");
+    setObservations("");
   };
 
   const zoneFound = results
