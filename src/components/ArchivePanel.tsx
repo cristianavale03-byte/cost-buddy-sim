@@ -300,12 +300,21 @@ export function ArchivePanel() {
                 const greenCls = "bg-green-100 dark:bg-green-900/40";
                 const excessiveCls = "text-destructive font-medium";
 
+                const extraRate = e.extraRateApplied ?? 0;
+                const baseValue = (val: number) => extraRate > 0 ? val / (1 + extraRate / 100) : null;
+
                 const renderFleetCell = (cost: number | undefined, warning: string | undefined, key: string) => {
                   if (warning) {
                     return <TableCell className={`text-xs py-2 ${excessiveCls}`}>{warning}</TableCell>;
                   }
                   if (cost != null) {
-                    return <TableCell className={`text-xs py-2 ${cheapestKey === key ? greenCls : ""}`}>{cost.toFixed(2)} €</TableCell>;
+                    const base = baseValue(cost);
+                    return (
+                      <TableCell className={`text-xs py-2 ${cheapestKey === key ? greenCls : ""}`}>
+                        {cost.toFixed(2)} €
+                        {base != null && <span className="block text-[10px] text-muted-foreground">({base.toFixed(2)} €)</span>}
+                      </TableCell>
+                    );
                   }
                   return <TableCell className="text-xs py-2">—</TableCell>;
                 };
@@ -322,7 +331,12 @@ export function ArchivePanel() {
                   <TableCell className="text-xs py-2">{e.savedBy ?? "—"}</TableCell>
                   <TableCell className="text-xs py-2">{getRoute(e)}</TableCell>
                   <TableCell className="text-xs py-2">{getWeightOrMeters(e)}</TableCell>
-                  <TableCell className={`text-xs py-2 font-medium ${cheapestKey === "pombalense" ? greenCls : ""}`}>{e.pombalenseTotalCost?.toFixed(2) ?? "—"} €</TableCell>
+                  <TableCell className={`text-xs py-2 font-medium ${cheapestKey === "pombalense" ? greenCls : ""}`}>
+                    {e.pombalenseTotalCost?.toFixed(2) ?? "—"} €
+                    {e.pombalenseTotalCost != null && extraRate > 0 && (
+                      <span className="block text-[10px] text-muted-foreground font-normal">({baseValue(e.pombalenseTotalCost)?.toFixed(2)} €)</span>
+                    )}
+                  </TableCell>
                   {renderFleetCell(e.fleet6tCost, e.fleet6tWarning, "fleet6t")}
                   {renderFleetCell(e.fleet9tCost, e.fleet9tWarning, "fleet9t")}
                   {renderFleetCell(e.fleet15tCost, e.fleet15tWarning, "fleet15t")}
