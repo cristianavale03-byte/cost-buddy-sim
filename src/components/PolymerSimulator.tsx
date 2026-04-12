@@ -89,13 +89,16 @@ export function CostSimulator() {
     setEstimateName("");
   };
 
+  const [baseWeightCost, setBaseWeightCost] = useState<number | null>(null);
+
   const simulate = () => {
     if (totalKm <= 0 || totalWeight <= 0) return;
     const result = calculateAllPolymerOptions(cargoLines, totalKm, origin, destination, numDeslocacoes);
 
+    const baseCost = result.pombalense.weightCost;
     if (extraRate > 0) {
       const factor = 1 + extraRate / 100;
-      result.pombalense.weightCost = result.pombalense.weightCost * factor;
+      result.pombalense.weightCost = baseCost * factor;
       result.pombalense.totalCost = result.pombalense.weightCost + result.pombalense.deliveryCost;
       result.fleetOptions = result.fleetOptions.map((o: any) => ({
         ...o,
@@ -103,6 +106,9 @@ export function CostSimulator() {
         costPerTon: o.costPerTon ? o.costPerTon * factor : o.costPerTon,
         costPerKm2: o.costPerKm2 ? o.costPerKm2 * factor : o.costPerKm2,
       }));
+      setBaseWeightCost(baseCost);
+    } else {
+      setBaseWeightCost(null);
     }
 
     setResults(result);
@@ -457,14 +463,14 @@ export function CostSimulator() {
                           <div className="mt-0.5 space-y-0.5">
                             {results.heavyLoadComparison ? (
                               <p className="text-[10px] text-muted-foreground">
-                                {results.heavyLoadComparison.optionUsed === "CF" && `CF: ${results.pombalense.weightCost.toFixed(2)} €`}
-                                {results.heavyLoadComparison.optionUsed === "3Eixos" && `3 Eixos: ${results.pombalense.weightCost.toFixed(2)} €`}
-                                {results.heavyLoadComparison.optionUsed === "Reboque" && `Reboque: ${results.pombalense.weightCost.toFixed(2)} €`}
+                                {results.heavyLoadComparison.optionUsed === "CF" && `CF: ${results.pombalense.weightCost.toFixed(2)} €${baseWeightCost !== null ? ` (${baseWeightCost.toFixed(2)} €)` : ""}`}
+                                {results.heavyLoadComparison.optionUsed === "3Eixos" && `3 Eixos: ${results.pombalense.weightCost.toFixed(2)} €${baseWeightCost !== null ? ` (${baseWeightCost.toFixed(2)} €)` : ""}`}
+                                {results.heavyLoadComparison.optionUsed === "Reboque" && `Reboque: ${results.pombalense.weightCost.toFixed(2)} €${baseWeightCost !== null ? ` (${baseWeightCost.toFixed(2)} €)` : ""}`}
                               </p>
                             ) : tableToUse === "CC" ? (
-                              <p className="text-[10px] text-muted-foreground">Custo por comprimento (CC): {results.pombalense.weightCost.toFixed(2)} €</p>
+                              <p className="text-[10px] text-muted-foreground">Custo por comprimento (CC): {results.pombalense.weightCost.toFixed(2)} €{baseWeightCost !== null ? ` (${baseWeightCost.toFixed(2)} €)` : ""}</p>
                             ) : (
-                              <p className="text-[10px] text-muted-foreground">Custo por peso: {results.pombalense.weightCost.toFixed(2)} €</p>
+                              <p className="text-[10px] text-muted-foreground">Custo por peso: {results.pombalense.weightCost.toFixed(2)} €{baseWeightCost !== null ? ` (${baseWeightCost.toFixed(2)} €)` : ""}</p>
                             )}
                             {results.pombalense.deliveryCost > 0 && (
                               <p className="text-[10px] text-muted-foreground">Desloc.: {results.pombalense.deliveryCost.toFixed(2)} €</p>
