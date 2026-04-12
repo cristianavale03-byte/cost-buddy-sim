@@ -47,7 +47,10 @@ export function CostSimulator() {
     : origin.includes("Maia") ? 3
     : 0;
   const filteredDestinations = origin
-    ? [...new Set(cfZones.filter(z => z.originId === originId).flatMap(z => z.destinations))].sort()
+    ? [...new Set([
+        ...cfZones.filter(z => z.originId === originId).flatMap(z => z.destinations),
+        ...ccPrices.map(p => p.destination),
+      ])].sort()
     : [];
 
   const update = (partial: Partial<typeof polymer>) => {
