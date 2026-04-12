@@ -288,11 +288,7 @@ export function ArchivePanel() {
             </TableHeader>
             <TableBody>
               {sorted.map(e => {
-                // IMPROVED: highlight cheapest cost cell with green background
-                const weight = e.totalWeightTon ?? e.weightTon ?? 0;
-                const excessive6 = weight > 6;
-                const excessive9 = weight > 9;
-                const excessive15 = weight > 15;
+                // IMPROVED: use stored warnings for fleet inviability
                 const costs = [
                   { key: "pombalense", val: e.pombalenseTotalCost },
                   { key: "fleet6t", val: e.fleet6tCost },
@@ -304,6 +300,16 @@ export function ArchivePanel() {
                 const greenCls = "bg-green-100 dark:bg-green-900/40";
                 const excessiveCls = "text-destructive font-medium";
 
+                const renderFleetCell = (cost: number | undefined, warning: string | undefined, key: string) => {
+                  if (warning) {
+                    return <TableCell className={`text-xs py-2 ${excessiveCls}`}>{warning}</TableCell>;
+                  }
+                  if (cost != null) {
+                    return <TableCell className={`text-xs py-2 ${cheapestKey === key ? greenCls : ""}`}>{cost.toFixed(2)} €</TableCell>;
+                  }
+                  return <TableCell className="text-xs py-2">—</TableCell>;
+                };
+
                 return (
                 <TableRow key={e.id}>
                   <TableCell className="text-xs py-2 font-medium">{e.name}</TableCell>
@@ -313,14 +319,13 @@ export function ArchivePanel() {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-xs py-2">{formatDate(e.savedAt)}</TableCell>
-                  {/* IMPROVED: display saved_by */}
                   <TableCell className="text-xs py-2">{e.savedBy ?? "—"}</TableCell>
                   <TableCell className="text-xs py-2">{getRoute(e)}</TableCell>
                   <TableCell className="text-xs py-2">{getWeightOrMeters(e)}</TableCell>
                   <TableCell className={`text-xs py-2 font-medium ${cheapestKey === "pombalense" ? greenCls : ""}`}>{e.pombalenseTotalCost?.toFixed(2) ?? "—"} €</TableCell>
-                  <TableCell className={`text-xs py-2 ${excessive6 && e.fleet6tCost == null ? excessiveCls : cheapestKey === "fleet6t" ? greenCls : ""}`}>{excessive6 && e.fleet6tCost == null ? "Carga excessiva" : e.fleet6tCost?.toFixed(2) != null ? `${e.fleet6tCost!.toFixed(2)} €` : "—"}</TableCell>
-                  <TableCell className={`text-xs py-2 ${excessive9 && e.fleet9tCost == null ? excessiveCls : cheapestKey === "fleet9t" ? greenCls : ""}`}>{excessive9 && e.fleet9tCost == null ? "Carga excessiva" : e.fleet9tCost?.toFixed(2) != null ? `${e.fleet9tCost!.toFixed(2)} €` : "—"}</TableCell>
-                  <TableCell className={`text-xs py-2 ${excessive15 && e.fleet15tCost == null ? excessiveCls : cheapestKey === "fleet15t" ? greenCls : ""}`}>{excessive15 && e.fleet15tCost == null ? "Carga excessiva" : e.fleet15tCost?.toFixed(2) != null ? `${e.fleet15tCost!.toFixed(2)} €` : "—"}</TableCell>
+                  {renderFleetCell(e.fleet6tCost, e.fleet6tWarning, "fleet6t")}
+                  {renderFleetCell(e.fleet9tCost, e.fleet9tWarning, "fleet9t")}
+                  {renderFleetCell(e.fleet15tCost, e.fleet15tWarning, "fleet15t")}
                   <TableCell className="text-xs py-2">
                     {e.cheapestOption === "Pombalense" ? (
                       <Badge className="text-[10px] bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 hover:bg-green-100">
