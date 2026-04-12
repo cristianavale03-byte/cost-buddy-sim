@@ -250,10 +250,15 @@ export function calculateAllPolymerOptions(
     const maxLength = Math.max(...lines.map(l => l.lengthMeters), 0);
     let weightCost = 0;
 
-    if (maxLength > 8) {
-      // > 8m → 3 Eixos
+    if (maxLength > 8 || numDeliveries > 2) {
+      // > 8m OR > 2 deliveries → use 3 Eixos or Reboque (cheapest)
       const cost3 = getCCPrice(destinationName, "threeAxle");
-      weightCost = cost3 ?? 0;
+      const costR = getCCPrice(destinationName, "trailer");
+      if (cost3 !== null && costR !== null) {
+        weightCost = Math.min(cost3, costR);
+      } else {
+        weightCost = cost3 ?? costR ?? 0;
+      }
     } else if (totalWeightTon > 15) {
       // > 15t → Reboque
       const costR = getCCPrice(destinationName, "trailer");
