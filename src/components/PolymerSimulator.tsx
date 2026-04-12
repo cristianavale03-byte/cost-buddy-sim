@@ -46,26 +46,43 @@ export function CostSimulator() {
   const tableToUse = selectPombalenseTable(cargoLines);
   const numDeslocacoes = numFreightsManual;
 
-  const originId = origin.includes("Gulpilhares") || origin.includes("Espinho") ? 1
-    : origin.includes("Meirinhas") ? 2
-    : origin.includes("Maia") ? 3
-    : 0;
+  const originId =
+    origin.includes("Gulpilhares") || origin.includes("Espinho")
+      ? 1
+      : origin.includes("Meirinhas")
+        ? 2
+        : origin.includes("Maia")
+          ? 3
+          : 0;
   const filteredDestinations = origin
-    ? [...new Set([
-        ...cfZones.filter(z => z.originId === originId).flatMap(z => z.destinations),
-        ...ccPrices.map(p => p.destination),
-      ])].sort()
+    ? [
+        ...new Set([
+          ...cfZones.filter((z) => z.originId === originId).flatMap((z) => z.destinations),
+          ...ccPrices.map((p) => p.destination),
+        ]),
+      ].sort()
     : [];
 
   const update = (partial: Partial<typeof polymer>) => {
-    setPolymer(prev => ({ ...prev, ...partial }));
+    setPolymer((prev) => ({ ...prev, ...partial }));
   };
 
   const setCargoLines = (lines: CargoLine[]) => update({ cargoLines: lines });
   const setResults = (r: typeof results) => update({ results: r });
 
   const addLine = () => {
-    setCargoLines([...cargoLines, { id: crypto.randomUUID(), client: "", cargoType: "polymers", weightTon: 0, numPallets: 0, lengthMeters: 0, numPlates: 0 }]);
+    setCargoLines([
+      ...cargoLines,
+      {
+        id: crypto.randomUUID(),
+        client: "",
+        cargoType: "polymers",
+        weightTon: 0,
+        numPallets: 0,
+        lengthMeters: 0,
+        numPlates: 0,
+      },
+    ]);
   };
 
   const removeLine = (id: string) => {
@@ -88,7 +105,20 @@ export function CostSimulator() {
   };
 
   const handleClear = () => {
-    setPolymer({ ...defaultPolymer, cargoLines: [{ id: crypto.randomUUID(), client: "", cargoType: "polymers", weightTon: 0, numPallets: 0, lengthMeters: 0, numPlates: 0 }] });
+    setPolymer({
+      ...defaultPolymer,
+      cargoLines: [
+        {
+          id: crypto.randomUUID(),
+          client: "",
+          cargoType: "polymers",
+          weightTon: 0,
+          numPallets: 0,
+          lengthMeters: 0,
+          numPlates: 0,
+        },
+      ],
+    });
     setShowSaveDialog(false);
     setEstimateName("");
     setChosenOption("");
@@ -123,7 +153,9 @@ export function CostSimulator() {
   const handleSaveEstimate = () => {
     if (!estimateName.trim() || !results) return;
     const cheapestOpt = findCheapest(results.pombalense.totalCost, results.fleetOptions);
-    const bestFleet = results.fleetOptions.filter((o: any) => !o.warning).sort((a: any, b: any) => a.totalCost - b.totalCost)[0];
+    const bestFleet = results.fleetOptions
+      .filter((o: any) => !o.warning)
+      .sort((a: any, b: any) => a.totalCost - b.totalCost)[0];
     const estimate: SavedEstimate = {
       id: crypto.randomUUID(),
       name: estimateName.trim(),
@@ -141,11 +173,17 @@ export function CostSimulator() {
       pombalensetDeliveryCost: results.pombalense.deliveryCost,
       bestFleetOption: bestFleet?.vehicleName,
       bestFleetCost: bestFleet?.totalCost,
-      fleet6tCost: !results.fleetOptions.find((o: any) => o.vehicleName?.includes("6"))?.warning ? results.fleetOptions.find((o: any) => o.vehicleName?.includes("6"))?.totalCost : undefined,
+      fleet6tCost: !results.fleetOptions.find((o: any) => o.vehicleName?.includes("6"))?.warning
+        ? results.fleetOptions.find((o: any) => o.vehicleName?.includes("6"))?.totalCost
+        : undefined,
       fleet6tWarning: results.fleetOptions.find((o: any) => o.vehicleName?.includes("6"))?.warning,
-      fleet9tCost: !results.fleetOptions.find((o: any) => o.vehicleName?.includes("9"))?.warning ? results.fleetOptions.find((o: any) => o.vehicleName?.includes("9"))?.totalCost : undefined,
+      fleet9tCost: !results.fleetOptions.find((o: any) => o.vehicleName?.includes("9"))?.warning
+        ? results.fleetOptions.find((o: any) => o.vehicleName?.includes("9"))?.totalCost
+        : undefined,
       fleet9tWarning: results.fleetOptions.find((o: any) => o.vehicleName?.includes("9"))?.warning,
-      fleet15tCost: !results.fleetOptions.find((o: any) => o.vehicleName?.includes("15"))?.warning ? results.fleetOptions.find((o: any) => o.vehicleName?.includes("15"))?.totalCost : undefined,
+      fleet15tCost: !results.fleetOptions.find((o: any) => o.vehicleName?.includes("15"))?.warning
+        ? results.fleetOptions.find((o: any) => o.vehicleName?.includes("15"))?.totalCost
+        : undefined,
       fleet15tWarning: results.fleetOptions.find((o: any) => o.vehicleName?.includes("15"))?.warning,
       cheapestOption: cheapestOpt,
       heavyLoadComparison: results.heavyLoadComparison,
@@ -153,7 +191,7 @@ export function CostSimulator() {
       chosenOption: chosenOption || undefined,
       observations: observations.trim() || undefined,
     };
-    setSavedEstimates(prev => [...prev, estimate]);
+    setSavedEstimates((prev) => [...prev, estimate]);
     setShowSaveDialog(false);
     setEstimateName("");
     setChosenOption("");
@@ -161,14 +199,18 @@ export function CostSimulator() {
   };
 
   const zoneFound = results
-    ? (tableToUse === "CC"
-        ? ccPrices.some(p => p.destination.toLowerCase() === destination.toLowerCase() || p.destination.toLowerCase().includes(destination.toLowerCase()) || destination.toLowerCase().includes(p.destination.toLowerCase()))
-        : findCFZone(origin, destination) !== null || (results.heavyLoadComparison !== null && results.heavyLoadComparison.custoBaseEfetivo > 0))
+    ? tableToUse === "CC"
+      ? ccPrices.some(
+          (p) =>
+            p.destination.toLowerCase() === destination.toLowerCase() ||
+            p.destination.toLowerCase().includes(destination.toLowerCase()) ||
+            destination.toLowerCase().includes(p.destination.toLowerCase()),
+        )
+      : findCFZone(origin, destination) !== null ||
+        (results.heavyLoadComparison !== null && results.heavyLoadComparison.custoBaseEfetivo > 0)
     : true;
 
-  const cheapest = results
-    ? findCheapest(results.pombalense.totalCost, results.fleetOptions)
-    : null;
+  const cheapest = results ? findCheapest(results.pombalense.totalCost, results.fleetOptions) : null;
 
   const chartData = results
     ? [
@@ -183,11 +225,11 @@ export function CostSimulator() {
     : [];
 
   // Viable fleet vehicles for summary
-  const viableFleet = fleetVehicles.filter(v => totalWeight <= v.capacityTon && linearMeters <= v.capacityMeters);
+  const viableFleet = fleetVehicles.filter((v) => totalWeight <= v.capacityTon && linearMeters <= v.capacityMeters);
 
   // Check if any line has construction type to show/hide columns
-  const hasPolymersOrEquipment = cargoLines.some(l => l.cargoType === "polymers" || l.cargoType === "equipment");
-  const hasConstruction = cargoLines.some(l => l.cargoType === "construction");
+  const hasPolymersOrEquipment = cargoLines.some((l) => l.cargoType === "polymers" || l.cargoType === "equipment");
+  const hasConstruction = cargoLines.some((l) => l.cargoType === "construction");
 
   return (
     <div className="space-y-4">
@@ -205,10 +247,14 @@ export function CostSimulator() {
             <div className="space-y-1">
               <Label className="text-xs">Origem</Label>
               <Select value={origin} onValueChange={handleOriginChange}>
-                <SelectTrigger className="h-9"><SelectValue placeholder="Selecionar origem" /></SelectTrigger>
+                <SelectTrigger className="h-9">
+                  <SelectValue placeholder="Selecionar origem" />
+                </SelectTrigger>
                 <SelectContent>
                   {origins.map((o) => (
-                    <SelectItem key={o.id} value={o.name}>{o.name}</SelectItem>
+                    <SelectItem key={o.id} value={o.name}>
+                      {o.name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -221,7 +267,9 @@ export function CostSimulator() {
                 </SelectTrigger>
                 <SelectContent>
                   {filteredDestinations.map((d) => (
-                    <SelectItem key={d} value={d}>{d}</SelectItem>
+                    <SelectItem key={d} value={d}>
+                      {d}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -243,7 +291,7 @@ export function CostSimulator() {
                 type="number"
                 min={0}
                 value={numFreightsManual}
-                onChange={e => update({ numFreightsManual: Math.max(0, Number(e.target.value)) })}
+                onChange={(e) => update({ numFreightsManual: Math.max(0, Number(e.target.value)) })}
               />
               <p className="text-[10px] text-muted-foreground flex items-center gap-1">
                 <Info className="h-3 w-3 shrink-0" /> 25 € por deslocação extra
@@ -286,10 +334,7 @@ export function CostSimulator() {
                         />
                       </TableCell>
                       <TableCell className="py-1">
-                        <Select
-                          value={line.cargoType}
-                          onValueChange={(val) => updateLine(line.id, "cargoType", val)}
-                        >
+                        <Select value={line.cargoType} onValueChange={(val) => updateLine(line.id, "cargoType", val)}>
                           <SelectTrigger className="h-8 text-xs">
                             <SelectValue />
                           </SelectTrigger>
@@ -319,7 +364,9 @@ export function CostSimulator() {
                             type="number"
                             min={0}
                             value={line.numPallets || ""}
-                            onChange={(e) => updateLine(line.id, "numPallets", Math.max(0, parseInt(e.target.value) || 0))}
+                            onChange={(e) =>
+                              updateLine(line.id, "numPallets", Math.max(0, parseInt(e.target.value) || 0))
+                            }
                             placeholder="0"
                           />
                         ) : (
@@ -349,7 +396,9 @@ export function CostSimulator() {
                             type="number"
                             min={1}
                             value={line.numPlates || ""}
-                            onChange={(e) => updateLine(line.id, "numPlates", Math.max(1, parseInt(e.target.value) || 1))}
+                            onChange={(e) =>
+                              updateLine(line.id, "numPlates", Math.max(1, parseInt(e.target.value) || 1))
+                            }
                             placeholder="1"
                           />
                         ) : (
@@ -376,10 +425,21 @@ export function CostSimulator() {
             {/* Summary below table */}
             <div className="mt-3 p-3 rounded-md bg-muted/50 space-y-1.5">
               <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs">
-                <span>Peso total: <span className="font-bold text-foreground">{totalWeight.toFixed(1)} ton</span></span>
-                <span>Comprimento linear total: <span className="font-bold text-foreground">{linearMeters.toFixed(1)} m</span></span>
+                <span>
+                  Peso total: <span className="font-bold text-foreground">{totalWeight.toFixed(1)} ton</span>
+                </span>
+                <span>
+                  Comprimento linear total:{" "}
+                  <span className="font-bold text-foreground">{linearMeters.toFixed(1)} m</span>
+                </span>
                 <span className="flex items-center gap-1">
-                  Tabela Pombalense: <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 hover:bg-blue-100">{tableToUse}</Badge>
+                  Tabela Pombalense:{" "}
+                  <Badge
+                    variant="secondary"
+                    className="text-[10px] px-1.5 py-0 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 hover:bg-blue-100"
+                  >
+                    {tableToUse}
+                  </Badge>
                 </span>
               </div>
               {fleetVehicles.length > 0 && (
@@ -395,8 +455,10 @@ export function CostSimulator() {
                         className={`rounded px-1.5 py-0.5 ${allOk ? "bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300" : "bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300"}`}
                       >
                         <span className="font-medium">{v.name}:</span>{" "}
-                        <span className={!metersOk ? "font-bold underline" : ""}>{linearMeters.toFixed(1)} m</span> / {v.capacityMeters} m,{" "}
-                        <span className={!weightOk ? "font-bold underline" : ""}>{totalWeight.toFixed(1)} ton</span> / {v.capacityTon} ton
+                        <span className={!metersOk ? "font-bold underline" : ""}>{linearMeters.toFixed(1)} m</span> /{" "}
+                        {v.capacityMeters} m,{" "}
+                        <span className={!weightOk ? "font-bold underline" : ""}>{totalWeight.toFixed(1)} ton</span> /{" "}
+                        {v.capacityTon} ton
                       </div>
                     );
                   })}
@@ -429,7 +491,17 @@ export function CostSimulator() {
           </div>
 
           {/* Save estimate dialog */}
-          <Dialog open={showSaveDialog} onOpenChange={(open) => { if (!open) { setShowSaveDialog(false); setEstimateName(""); setChosenOption(""); setObservations(""); } }}>
+          <Dialog
+            open={showSaveDialog}
+            onOpenChange={(open) => {
+              if (!open) {
+                setShowSaveDialog(false);
+                setEstimateName("");
+                setChosenOption("");
+                setObservations("");
+              }
+            }}
+          >
             <DialogContent className="max-w-md">
               <DialogHeader>
                 <DialogTitle className="text-base">Guardar Estimativa</DialogTitle>
@@ -441,19 +513,29 @@ export function CostSimulator() {
                     className="h-9 text-sm"
                     value={estimateName}
                     onChange={(e) => setEstimateName(e.target.value)}
-                    placeholder="Ex: Viagem Lisboa 12/04"
+                    placeholder="Exemplo: 2024.01.01.001"
                     autoFocus
                   />
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs">Opção realizada</Label>
                   <Select value={chosenOption} onValueChange={setChosenOption}>
-                    <SelectTrigger className="h-9"><SelectValue placeholder="Selecionar opção utilizada" /></SelectTrigger>
+                    <SelectTrigger className="h-9">
+                      <SelectValue placeholder="Selecionar opção utilizada" />
+                    </SelectTrigger>
                     <SelectContent>
-                      {zoneFound && <SelectItem value="Pombalense">Pombalense — {results.pombalense.totalCost?.toFixed(2)} €</SelectItem>}
-                      {results.fleetOptions.filter((o: any) => !o.warning).map((o: any) => (
-                        <SelectItem key={o.vehicleName} value={o.vehicleName}>{o.vehicleName} — {o.totalCost?.toFixed(2)} €</SelectItem>
-                      ))}
+                      {zoneFound && (
+                        <SelectItem value="Pombalense">
+                          Pombalense — {results.pombalense.totalCost?.toFixed(2)} €
+                        </SelectItem>
+                      )}
+                      {results.fleetOptions
+                        .filter((o: any) => !o.warning)
+                        .map((o: any) => (
+                          <SelectItem key={o.vehicleName} value={o.vehicleName}>
+                            {o.vehicleName} — {o.totalCost?.toFixed(2)} €
+                          </SelectItem>
+                        ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -468,7 +550,16 @@ export function CostSimulator() {
                 </div>
               </div>
               <DialogFooter>
-                <Button variant="outline" size="sm" onClick={() => { setShowSaveDialog(false); setEstimateName(""); setChosenOption(""); setObservations(""); }}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setShowSaveDialog(false);
+                    setEstimateName("");
+                    setChosenOption("");
+                    setObservations("");
+                  }}
+                >
                   Cancelar
                 </Button>
                 <Button size="sm" onClick={handleSaveEstimate} disabled={!estimateName.trim()}>
@@ -498,7 +589,9 @@ export function CostSimulator() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    <TableRow className={zoneFound && cheapest === "Pombalense" ? "bg-green-50 dark:bg-green-950/30" : ""}>
+                    <TableRow
+                      className={zoneFound && cheapest === "Pombalense" ? "bg-green-50 dark:bg-green-950/30" : ""}
+                    >
                       <TableCell className="font-medium text-xs py-2">
                         <div>
                           Pombalense
@@ -517,32 +610,59 @@ export function CostSimulator() {
                           <div className="mt-0.5 space-y-0.5">
                             {results.heavyLoadComparison ? (
                               <p className="text-[10px] text-muted-foreground">
-                                {results.heavyLoadComparison.optionUsed === "CF" && `CF: ${results.pombalense.weightCost.toFixed(2)} €${baseWeightCost !== null ? ` (${baseWeightCost.toFixed(2)} €)` : ""}`}
-                                {results.heavyLoadComparison.optionUsed === "3Eixos" && `3 Eixos: ${results.pombalense.weightCost.toFixed(2)} €${baseWeightCost !== null ? ` (${baseWeightCost.toFixed(2)} €)` : ""}`}
-                                {results.heavyLoadComparison.optionUsed === "Reboque" && `Reboque: ${results.pombalense.weightCost.toFixed(2)} €${baseWeightCost !== null ? ` (${baseWeightCost.toFixed(2)} €)` : ""}`}
+                                {results.heavyLoadComparison.optionUsed === "CF" &&
+                                  `CF: ${results.pombalense.weightCost.toFixed(2)} €${baseWeightCost !== null ? ` (${baseWeightCost.toFixed(2)} €)` : ""}`}
+                                {results.heavyLoadComparison.optionUsed === "3Eixos" &&
+                                  `3 Eixos: ${results.pombalense.weightCost.toFixed(2)} €${baseWeightCost !== null ? ` (${baseWeightCost.toFixed(2)} €)` : ""}`}
+                                {results.heavyLoadComparison.optionUsed === "Reboque" &&
+                                  `Reboque: ${results.pombalense.weightCost.toFixed(2)} €${baseWeightCost !== null ? ` (${baseWeightCost.toFixed(2)} €)` : ""}`}
                               </p>
                             ) : tableToUse === "CC" ? (
-                              <p className="text-[10px] text-muted-foreground">Custo por comprimento (CC): {results.pombalense.weightCost.toFixed(2)} €{baseWeightCost !== null ? ` (${baseWeightCost.toFixed(2)} €` : ""}{results.pombalense.zoneName ? ` — ${results.pombalense.zoneName}` : ""}{baseWeightCost !== null ? ")" : ""}</p>
+                              <p className="text-[10px] text-muted-foreground">
+                                Custo por comprimento (CC): {results.pombalense.weightCost.toFixed(2)} €
+                                {baseWeightCost !== null ? ` (${baseWeightCost.toFixed(2)} €` : ""}
+                                {results.pombalense.zoneName ? ` — ${results.pombalense.zoneName}` : ""}
+                                {baseWeightCost !== null ? ")" : ""}
+                              </p>
                             ) : (
-                              <p className="text-[10px] text-muted-foreground">Custo por peso: {results.pombalense.weightCost.toFixed(2)} €{baseWeightCost !== null ? ` (${baseWeightCost.toFixed(2)} €)` : ""}</p>
+                              <p className="text-[10px] text-muted-foreground">
+                                Custo por peso: {results.pombalense.weightCost.toFixed(2)} €
+                                {baseWeightCost !== null ? ` (${baseWeightCost.toFixed(2)} €)` : ""}
+                              </p>
                             )}
                             {results.pombalense.deliveryCost > 0 && (
-                              <p className="text-[10px] text-muted-foreground">Desloc.: {results.pombalense.deliveryCost.toFixed(2)} €</p>
+                              <p className="text-[10px] text-muted-foreground">
+                                Desloc.: {results.pombalense.deliveryCost.toFixed(2)} €
+                              </p>
                             )}
                           </div>
                         )}
                       </TableCell>
-                      <TableCell className="text-right text-xs py-2">{zoneFound ? results.pombalense.numFreights : "—"}</TableCell>
-                      <TableCell className="text-right font-bold text-xs py-2">{zoneFound ? `${results.pombalense.totalCost.toFixed(2)} €` : "—"}</TableCell>
-                      <TableCell className="text-right text-xs py-2">{zoneFound && totalWeight > 0 ? (results.pombalense.totalCost / totalWeight).toFixed(2) : "—"}</TableCell>
-                      <TableCell className="text-right text-xs py-2">{zoneFound && totalKm > 0 ? (results.pombalense.totalCost / totalKm).toFixed(2) : "—"}</TableCell>
+                      <TableCell className="text-right text-xs py-2">
+                        {zoneFound ? results.pombalense.numFreights : "—"}
+                      </TableCell>
+                      <TableCell className="text-right font-bold text-xs py-2">
+                        {zoneFound ? `${results.pombalense.totalCost.toFixed(2)} €` : "—"}
+                      </TableCell>
+                      <TableCell className="text-right text-xs py-2">
+                        {zoneFound && totalWeight > 0 ? (results.pombalense.totalCost / totalWeight).toFixed(2) : "—"}
+                      </TableCell>
+                      <TableCell className="text-right text-xs py-2">
+                        {zoneFound && totalKm > 0 ? (results.pombalense.totalCost / totalKm).toFixed(2) : "—"}
+                      </TableCell>
                     </TableRow>
                     {results.fleetOptions.map((opt: any) => {
                       const hasWarning = !!opt.warning;
                       return (
                         <TableRow
                           key={opt.vehicleName}
-                          className={hasWarning ? "bg-destructive/10" : cheapest === opt.vehicleName ? "bg-green-50 dark:bg-green-950/30" : ""}
+                          className={
+                            hasWarning
+                              ? "bg-destructive/10"
+                              : cheapest === opt.vehicleName
+                                ? "bg-green-50 dark:bg-green-950/30"
+                                : ""
+                          }
                         >
                           <TableCell className="font-medium text-xs py-2">
                             {opt.vehicleName}
@@ -557,10 +677,18 @@ export function CostSimulator() {
                               </span>
                             )}
                           </TableCell>
-                          <TableCell className="text-right text-xs py-2">{hasWarning ? "—" : opt.numFreights}</TableCell>
-                          <TableCell className="text-right font-bold text-xs py-2">{hasWarning ? "—" : `${opt.totalCost.toFixed(2)} €`}</TableCell>
-                          <TableCell className="text-right text-xs py-2">{hasWarning ? "—" : (opt.costPerTon?.toFixed(2) ?? "-")}</TableCell>
-                          <TableCell className="text-right text-xs py-2">{hasWarning ? "—" : (opt.costPerKm2?.toFixed(2) ?? "-")}</TableCell>
+                          <TableCell className="text-right text-xs py-2">
+                            {hasWarning ? "—" : opt.numFreights}
+                          </TableCell>
+                          <TableCell className="text-right font-bold text-xs py-2">
+                            {hasWarning ? "—" : `${opt.totalCost.toFixed(2)} €`}
+                          </TableCell>
+                          <TableCell className="text-right text-xs py-2">
+                            {hasWarning ? "—" : (opt.costPerTon?.toFixed(2) ?? "-")}
+                          </TableCell>
+                          <TableCell className="text-right text-xs py-2">
+                            {hasWarning ? "—" : (opt.costPerKm2?.toFixed(2) ?? "-")}
+                          </TableCell>
                         </TableRow>
                       );
                     })}
@@ -585,7 +713,11 @@ export function CostSimulator() {
                           </span>
                         )}
                       </span>
-                      <span className={`font-medium text-foreground ${numDeslocacoes > 0 ? "line-through opacity-50" : ""}`}>{results.heavyLoadComparison.custoCFIncremental.toFixed(2)} €</span>
+                      <span
+                        className={`font-medium text-foreground ${numDeslocacoes > 0 ? "line-through opacity-50" : ""}`}
+                      >
+                        {results.heavyLoadComparison.custoCFIncremental.toFixed(2)} €
+                      </span>
                     </div>
                     <div className="flex justify-between text-[11px] text-muted-foreground">
                       <span>
