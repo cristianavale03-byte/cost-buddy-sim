@@ -423,29 +423,60 @@ export function CostSimulator() {
           )}
 
           <div className="flex items-center gap-2 px-1">
-            {!showSaveInput ? (
-              <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setShowSaveInput(true)}>
-                <Save className="h-3 w-3 mr-1" /> Guardar Estimativa
-              </Button>
-            ) : (
-              <div className="flex items-center gap-2">
-                <Input
-                  className="h-7 text-xs w-48"
-                  value={estimateName}
-                  onChange={(e) => setEstimateName(e.target.value)}
-                  placeholder="Nome da estimativa"
-                  autoFocus
-                  onKeyDown={(e) => e.key === "Enter" && handleSaveEstimate()}
-                />
-                <Button size="icon" variant="ghost" className="h-7 w-7" onClick={handleSaveEstimate} disabled={!estimateName.trim()}>
-                  <Check className="h-3 w-3 text-green-600" />
-                </Button>
-                <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setShowSaveInput(false); setEstimateName(""); }}>
-                  <X className="h-3 w-3 text-destructive" />
-                </Button>
-              </div>
-            )}
+            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setShowSaveDialog(true)}>
+              <Save className="h-3 w-3 mr-1" /> Guardar Estimativa
+            </Button>
           </div>
+
+          {/* Save estimate dialog */}
+          <Dialog open={showSaveDialog} onOpenChange={(open) => { if (!open) { setShowSaveDialog(false); setEstimateName(""); setChosenOption(""); setObservations(""); } }}>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle className="text-base">Guardar Estimativa</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="space-y-1">
+                  <Label className="text-xs">Nome da estimativa</Label>
+                  <Input
+                    className="h-9 text-sm"
+                    value={estimateName}
+                    onChange={(e) => setEstimateName(e.target.value)}
+                    placeholder="Ex: Viagem Lisboa 12/04"
+                    autoFocus
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Opção realizada</Label>
+                  <Select value={chosenOption} onValueChange={setChosenOption}>
+                    <SelectTrigger className="h-9"><SelectValue placeholder="Selecionar opção utilizada" /></SelectTrigger>
+                    <SelectContent>
+                      {zoneFound && <SelectItem value="Pombalense">Pombalense — {results.pombalense.totalCost?.toFixed(2)} €</SelectItem>}
+                      {results.fleetOptions.filter((o: any) => !o.warning).map((o: any) => (
+                        <SelectItem key={o.vehicleName} value={o.vehicleName}>{o.vehicleName} — {o.totalCost?.toFixed(2)} €</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Observações</Label>
+                  <Textarea
+                    className="text-sm min-h-[80px]"
+                    value={observations}
+                    onChange={(e) => setObservations(e.target.value)}
+                    placeholder="Notas adicionais sobre esta estimativa..."
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" size="sm" onClick={() => { setShowSaveDialog(false); setEstimateName(""); setChosenOption(""); setObservations(""); }}>
+                  Cancelar
+                </Button>
+                <Button size="sm" onClick={handleSaveEstimate} disabled={!estimateName.trim()}>
+                  <Save className="h-3 w-3 mr-1" /> Guardar
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <Card>
