@@ -20,8 +20,11 @@ export interface SavedEstimate {
   bestFleetOption?: string;
   bestFleetCost?: number;
   fleet6tCost?: number;
+  fleet6tWarning?: string;
   fleet9tCost?: number;
+  fleet9tWarning?: string;
   fleet15tCost?: number;
+  fleet15tWarning?: string;
   cheapestOption?: string;
   heavyLoadComparison?: object;
   weightTon?: number;
