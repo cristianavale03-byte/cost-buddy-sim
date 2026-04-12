@@ -339,56 +339,104 @@ export function calculateAllPolymerOptions(
     };
   });
 
-  // Heavy load comparison (CF table only, >= 10 ton, not Meirinhas)
+  // Heavy load comparison (CF table, not Meirinhas)
+  // Triggers when: >= 10 ton (original rule) OR > 8 ton OR > 2 deliveries
   let heavyLoadComparison: HeavyLoadComparison | null = null;
   const isMeirinhas = originName.includes("Meirinhas");
+  const needsHeavyCheck = totalWeightTon >= 10 || totalWeightTon > 8 || numDeliveries > 2;
 
-  if (tableToUse === "CF" && totalWeightTon >= 10 && !isMeirinhas) {
+  if (tableToUse === "CF" && needsHeavyCheck && !isMeirinhas) {
     const zone = findCFZone(originName, destinationName);
     const beyondRate = zone?.beyondTenTonPerTon ?? 0;
-    const custoCFIncremental = totalWeightTon * beyondRate;
+    const custoCFIncremental = totalWeightTon >= 10 ? totalWeightTon * beyondRate : 0;
 
     const custoThreeAxle = getCCPrice(destinationName, "threeAxle");
     let custoTrailer: number | null = null;
     let suggestThreeAxle = false;
     let suggestTrailer = false;
 
-    const skipCFIncremental = numDeliveries > 0;
+    // Determine if CF incremental is valid (only for >= 10 ton with no deliveries)
+    const hasCFIncremental = totalWeightTon >= 10;
+    const skipCFIncremental = numDeliveries > 0 || !hasCFIncremental;
 
-    let custoBaseEfetivo = skipCFIncremental ? Infinity : custoCFIncremental;
-    let optionUsed: "CF" | "3Eixos" | "Reboque" = skipCFIncremental ? "3Eixos" : "CF";
+    // Apply same hierarchy as CC:
+    // 1) Weight >= 15t and < 25t → force Reboque
+    // 2) > 2 deliveries OR > 8t → force 3 Eixos
+    // 3) Otherwise → cheapest option
+    if (totalWeightTon >= 15 && totalWeightTon < 25) {
+      // Force Reboque
+      custoTrailer = getCCPrice(destinationName, "trailer");
+      const custoBaseEfetivo = custoTrailer ?? custoThreeAxle ?? custoCFIncremental;
+      heavyLoadComparison = {
+        custoCFIncremental,
+        custoThreeAxle,
+        custoTrailer,
+        suggestThreeAxle: false,
+        suggestTrailer: true,
+        custoBaseEfetivo,
+        optionUsed: custoTrailer !== null ? "Reboque" : (custoThreeAxle !== null ? "3Eixos" : "CF"),
+      };
+      pombalense.weightCost = custoBaseEfetivo;
+      pombalense.totalCost = custoBaseEfetivo + pombalense.deliveryCost;
+    } else if (numDeliveries > 2 || totalWeightTon > 8) {
+      // Force 3 Eixos (same rule as CC)
+      custoTrailer = getCCPrice(destinationName, "trailer");
+      let custoBaseEfetivo = custoThreeAxle ?? custoTrailer ?? custoCFIncremental;
+      let optionUsed: "CF" | "3Eixos" | "Reboque" = custoThreeAxle !== null ? "3Eixos" : (custoTrailer !== null ? "Reboque" : "CF");
 
-    if (custoThreeAxle !== null && custoThreeAxle < custoBaseEfetivo) {
-      custoBaseEfetivo = custoThreeAxle;
-      optionUsed = "3Eixos";
-      suggestThreeAxle = true;
+      // If CF incremental is available and cheaper, allow it (only when no deliveries)
+      if (!skipCFIncremental && custoCFIncremental < custoBaseEfetivo) {
+        custoBaseEfetivo = custoCFIncremental;
+        optionUsed = "CF";
+      }
+
+      heavyLoadComparison = {
+        custoCFIncremental,
+        custoThreeAxle,
+        custoTrailer,
+        suggestThreeAxle: optionUsed === "3Eixos",
+        suggestTrailer: optionUsed === "Reboque",
+        custoBaseEfetivo,
+        optionUsed,
+      };
+      pombalense.weightCost = custoBaseEfetivo;
+      pombalense.totalCost = custoBaseEfetivo + pombalense.deliveryCost;
+    } else {
+      // Original >= 10 ton logic: cheapest of CF/3Eixos/Reboque
+      let custoBaseEfetivo = skipCFIncremental ? Infinity : custoCFIncremental;
+      let optionUsed: "CF" | "3Eixos" | "Reboque" = skipCFIncremental ? "3Eixos" : "CF";
+
+      if (custoThreeAxle !== null && custoThreeAxle < custoBaseEfetivo) {
+        custoBaseEfetivo = custoThreeAxle;
+        optionUsed = "3Eixos";
+        suggestThreeAxle = true;
+      }
+
+      custoTrailer = getCCPrice(destinationName, "trailer");
+      if (custoTrailer !== null && custoTrailer < custoBaseEfetivo) {
+        custoBaseEfetivo = custoTrailer;
+        optionUsed = "Reboque";
+        suggestTrailer = true;
+        suggestThreeAxle = false;
+      }
+
+      if (skipCFIncremental && custoBaseEfetivo === Infinity) {
+        custoBaseEfetivo = custoCFIncremental;
+        optionUsed = "CF";
+      }
+
+      heavyLoadComparison = {
+        custoCFIncremental,
+        custoThreeAxle,
+        custoTrailer,
+        suggestThreeAxle,
+        suggestTrailer,
+        custoBaseEfetivo,
+        optionUsed,
+      };
+      pombalense.weightCost = custoBaseEfetivo;
+      pombalense.totalCost = custoBaseEfetivo + pombalense.deliveryCost;
     }
-
-    custoTrailer = getCCPrice(destinationName, "trailer");
-    if (custoTrailer !== null && custoTrailer < custoBaseEfetivo) {
-      custoBaseEfetivo = custoTrailer;
-      optionUsed = "Reboque";
-      suggestTrailer = true;
-      suggestThreeAxle = false;
-    }
-
-    if (skipCFIncremental && custoBaseEfetivo === Infinity) {
-      custoBaseEfetivo = custoCFIncremental;
-      optionUsed = "CF";
-    }
-
-    heavyLoadComparison = {
-      custoCFIncremental,
-      custoThreeAxle,
-      custoTrailer,
-      suggestThreeAxle,
-      suggestTrailer,
-      custoBaseEfetivo,
-      optionUsed,
-    };
-
-    pombalense.weightCost = custoBaseEfetivo;
-    pombalense.totalCost = custoBaseEfetivo + pombalense.deliveryCost;
   }
 
   return { pombalense, fleetOptions, heavyLoadComparison };
