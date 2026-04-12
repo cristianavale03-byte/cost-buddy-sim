@@ -282,20 +282,16 @@ export function CostSimulator() {
                           </SelectContent>
                         </Select>
                       </TableCell>
-                      {/* Peso (ton) — visible for polymers/equipment */}
+                      {/* Peso (ton) — always editable */}
                       <TableCell className="py-1">
-                        {isPolyOrEquip ? (
-                          <Input
-                            className="h-8"
-                            type="number"
-                            step="0.1"
-                            value={line.weightTon || ""}
-                            onChange={(e) => updateLine(line.id, "weightTon", Number(e.target.value))}
-                            placeholder="0.0"
-                          />
-                        ) : (
-                          <span className="text-xs text-muted-foreground">—</span>
-                        )}
+                        <Input
+                          className="h-8"
+                          type="number"
+                          step="0.1"
+                          value={line.weightTon || ""}
+                          onChange={(e) => updateLine(line.id, "weightTon", Number(e.target.value))}
+                          placeholder="0.0"
+                        />
                       </TableCell>
                       {/* Nº Paletes — visible for polymers/equipment */}
                       <TableCell className="py-1">
