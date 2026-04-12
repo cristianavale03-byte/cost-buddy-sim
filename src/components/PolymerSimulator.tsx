@@ -468,7 +468,7 @@ export function CostSimulator() {
                                 {results.heavyLoadComparison.optionUsed === "Reboque" && `Reboque: ${results.pombalense.weightCost.toFixed(2)} €${baseWeightCost !== null ? ` (${baseWeightCost.toFixed(2)} €)` : ""}`}
                               </p>
                             ) : tableToUse === "CC" ? (
-                              <p className="text-[10px] text-muted-foreground">Custo por comprimento (CC): {results.pombalense.weightCost.toFixed(2)} €{baseWeightCost !== null ? ` (${baseWeightCost.toFixed(2)} €)` : ""}</p>
+                              <p className="text-[10px] text-muted-foreground">Custo por comprimento (CC): {results.pombalense.weightCost.toFixed(2)} €{baseWeightCost !== null ? ` (${baseWeightCost.toFixed(2)} €` : ""}{results.pombalense.zoneName ? ` — ${results.pombalense.zoneName}` : ""}{baseWeightCost !== null ? ")" : ""}</p>
                             ) : (
                               <p className="text-[10px] text-muted-foreground">Custo por peso: {results.pombalense.weightCost.toFixed(2)} €{baseWeightCost !== null ? ` (${baseWeightCost.toFixed(2)} €)` : ""}</p>
                             )}
