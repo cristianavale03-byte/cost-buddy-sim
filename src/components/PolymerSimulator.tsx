@@ -40,6 +40,7 @@ export function CostSimulator() {
   const [estimateName, setEstimateName] = useState("");
   const [chosenOption, setChosenOption] = useState("");
   const [observations, setObservations] = useState("");
+  const [manualCosts, setManualCosts] = useState<Record<string, string>>({});
 
   const totalWeight = calculateTotalWeight(cargoLines);
   const linearMeters = calculateLinearMeters(cargoLines);
@@ -499,6 +500,7 @@ export function CostSimulator() {
                 setEstimateName("");
                 setChosenOption("");
                 setObservations("");
+                setManualCosts({});
               }
             }}
           >
@@ -519,25 +521,66 @@ export function CostSimulator() {
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs">Opção realizada</Label>
-                  <Select value={chosenOption} onValueChange={setChosenOption}>
-                    <SelectTrigger className="h-9">
-                      <SelectValue placeholder="Selecionar opção utilizada" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {zoneFound && (
-                        <SelectItem value="Pombalense">
-                          Pombalense — {results.pombalense.totalCost?.toFixed(2)} €
-                        </SelectItem>
-                      )}
-                      {results.fleetOptions
-                        .filter((o: any) => !o.warning)
-                        .map((o: any) => (
-                          <SelectItem key={o.vehicleName} value={o.vehicleName}>
-                            {o.vehicleName} — {o.totalCost?.toFixed(2)} €
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
+                  {(() => {
+                    const allOptions = [
+                      { key: "Frota 6t", fleet: results?.fleetOptions?.find((o: any) => o.vehicleName === "Frota 6t") },
+                      { key: "Frota 9t", fleet: results?.fleetOptions?.find((o: any) => o.vehicleName === "Frota 9t") },
+                      { key: "Frota 15t", fleet: results?.fleetOptions?.find((o: any) => o.vehicleName === "Frota 15t") },
+                      { key: "Pombalense", fleet: null },
+                    ];
+                    const pombalenseCost = zoneFound && results?.pombalense?.totalCost != null ? results.pombalense.totalCost : null;
+
+                    return (
+                      <div className="space-y-2">
+                        {allOptions.map(({ key, fleet }) => {
+                          const isPomb = key === "Pombalense";
+                          const hasCost = isPomb
+                            ? pombalenseCost != null
+                            : fleet && !fleet.warning && fleet.totalCost != null;
+                          const cost = isPomb ? pombalenseCost : fleet?.totalCost;
+                          const warning = !isPomb && fleet?.warning;
+                          const isSelected = chosenOption === key;
+
+                          return (
+                            <div key={key} className="space-y-1">
+                              <div
+                                className={`flex items-center gap-2 p-2 rounded-md border cursor-pointer transition-colors ${
+                                  isSelected ? "border-primary bg-primary/10" : "border-border hover:border-muted-foreground"
+                                }`}
+                                onClick={() => setChosenOption(key)}
+                              >
+                                <div className={`h-3 w-3 rounded-full border-2 flex items-center justify-center ${
+                                  isSelected ? "border-primary" : "border-muted-foreground"
+                                }`}>
+                                  {isSelected && <div className="h-1.5 w-1.5 rounded-full bg-primary" />}
+                                </div>
+                                <span className="text-sm flex-1">{key}</span>
+                                {hasCost ? (
+                                  <span className="text-sm font-medium">{Number(cost).toFixed(2)} €</span>
+                                ) : warning ? (
+                                  <span className="text-xs text-destructive">Sem capacidade</span>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground">Sem valor</span>
+                                )}
+                              </div>
+                              {isSelected && !hasCost && (
+                                <div className="pl-5">
+                                  <Input
+                                    className="h-8 text-sm"
+                                    type="number"
+                                    step="0.01"
+                                    placeholder="Custo total (€) — opcional"
+                                    value={manualCosts[key] ?? ""}
+                                    onChange={(e) => setManualCosts((prev) => ({ ...prev, [key]: e.target.value }))}
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs">Observações</Label>
@@ -558,6 +601,7 @@ export function CostSimulator() {
                     setEstimateName("");
                     setChosenOption("");
                     setObservations("");
+                    setManualCosts({});
                   }}
                 >
                   Cancelar
