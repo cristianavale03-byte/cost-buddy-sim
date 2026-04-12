@@ -463,14 +463,14 @@ export function CostSimulator() {
                           <div className="mt-0.5 space-y-0.5">
                             {results.heavyLoadComparison ? (
                               <p className="text-[10px] text-muted-foreground">
-                                {results.heavyLoadComparison.optionUsed === "CF" && `CF: ${results.pombalense.weightCost.toFixed(2)} €`}
-                                {results.heavyLoadComparison.optionUsed === "3Eixos" && `3 Eixos: ${results.pombalense.weightCost.toFixed(2)} €`}
-                                {results.heavyLoadComparison.optionUsed === "Reboque" && `Reboque: ${results.pombalense.weightCost.toFixed(2)} €`}
+                                {results.heavyLoadComparison.optionUsed === "CF" && `CF: ${results.pombalense.weightCost.toFixed(2)} €${baseWeightCost !== null ? ` (${baseWeightCost.toFixed(2)} €)` : ""}`}
+                                {results.heavyLoadComparison.optionUsed === "3Eixos" && `3 Eixos: ${results.pombalense.weightCost.toFixed(2)} €${baseWeightCost !== null ? ` (${baseWeightCost.toFixed(2)} €)` : ""}`}
+                                {results.heavyLoadComparison.optionUsed === "Reboque" && `Reboque: ${results.pombalense.weightCost.toFixed(2)} €${baseWeightCost !== null ? ` (${baseWeightCost.toFixed(2)} €)` : ""}`}
                               </p>
                             ) : tableToUse === "CC" ? (
-                              <p className="text-[10px] text-muted-foreground">Custo por comprimento (CC): {results.pombalense.weightCost.toFixed(2)} €</p>
+                              <p className="text-[10px] text-muted-foreground">Custo por comprimento (CC): {results.pombalense.weightCost.toFixed(2)} €{baseWeightCost !== null ? ` (${baseWeightCost.toFixed(2)} €)` : ""}</p>
                             ) : (
-                              <p className="text-[10px] text-muted-foreground">Custo por peso: {results.pombalense.weightCost.toFixed(2)} €</p>
+                              <p className="text-[10px] text-muted-foreground">Custo por peso: {results.pombalense.weightCost.toFixed(2)} €{baseWeightCost !== null ? ` (${baseWeightCost.toFixed(2)} €)` : ""}</p>
                             )}
                             {results.pombalense.deliveryCost > 0 && (
                               <p className="text-[10px] text-muted-foreground">Desloc.: {results.pombalense.deliveryCost.toFixed(2)} €</p>
