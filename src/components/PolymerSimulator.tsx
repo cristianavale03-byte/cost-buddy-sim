@@ -146,7 +146,11 @@ export function CostSimulator() {
     setEstimateName("");
   };
 
-  const zoneFound = results ? findCFZone(origin, destination) !== null : true;
+  const zoneFound = results
+    ? (tableToUse === "CC"
+        ? ccPrices.some(p => p.destination.toLowerCase() === destination.toLowerCase() || p.destination.toLowerCase().includes(destination.toLowerCase()) || destination.toLowerCase().includes(p.destination.toLowerCase()))
+        : findCFZone(origin, destination) !== null)
+    : true;
 
   const cheapest = results
     ? findCheapest(results.pombalense.totalCost, results.fleetOptions)
