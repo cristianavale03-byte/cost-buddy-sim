@@ -20,6 +20,7 @@ export type Database = {
           best_fleet_option: string | null
           cargo_lines: Json | null
           cheapest_option: string | null
+          chosen_option: string | null
           construction_pombalense_cost: number | null
           destination: string | null
           extra_rate_applied: number | null
@@ -31,6 +32,7 @@ export type Database = {
           largest_plate_label: string | null
           name: string
           num_freights: number | null
+          observations: string | null
           origin: string | null
           pombalense_delivery_cost: number | null
           pombalense_total_cost: number | null
@@ -48,6 +50,7 @@ export type Database = {
           best_fleet_option?: string | null
           cargo_lines?: Json | null
           cheapest_option?: string | null
+          chosen_option?: string | null
           construction_pombalense_cost?: number | null
           destination?: string | null
           extra_rate_applied?: number | null
@@ -59,6 +62,7 @@ export type Database = {
           largest_plate_label?: string | null
           name: string
           num_freights?: number | null
+          observations?: string | null
           origin?: string | null
           pombalense_delivery_cost?: number | null
           pombalense_total_cost?: number | null
@@ -76,6 +80,7 @@ export type Database = {
           best_fleet_option?: string | null
           cargo_lines?: Json | null
           cheapest_option?: string | null
+          chosen_option?: string | null
           construction_pombalense_cost?: number | null
           destination?: string | null
           extra_rate_applied?: number | null
@@ -87,6 +92,7 @@ export type Database = {
           largest_plate_label?: string | null
           name?: string
           num_freights?: number | null
+          observations?: string | null
           origin?: string | null
           pombalense_delivery_cost?: number | null
           pombalense_total_cost?: number | null

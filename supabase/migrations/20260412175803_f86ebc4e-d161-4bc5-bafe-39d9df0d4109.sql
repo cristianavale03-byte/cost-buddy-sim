@@ -1,0 +1,1 @@
+ALTER TABLE public.estimates ADD COLUMN chosen_option TEXT, ADD COLUMN observations TEXT;
