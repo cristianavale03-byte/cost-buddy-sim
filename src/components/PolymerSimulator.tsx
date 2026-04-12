@@ -6,6 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { Plus, Trash2, TrendingDown, Info, RotateCcw, Save, Check, X } from "lucide-react";
 import { origins, cfZones, ccPrices, fleetVehicles } from "@/data/fleetData";
 import { getEstimatedRoundTripKm } from "@/data/distanceData";
@@ -34,8 +36,10 @@ export function CostSimulator() {
 
   const { origin, destination, totalKm, numFreightsManual, cargoLines, results } = polymer;
 
-  const [showSaveInput, setShowSaveInput] = useState(false);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [estimateName, setEstimateName] = useState("");
+  const [chosenOption, setChosenOption] = useState("");
+  const [observations, setObservations] = useState("");
 
   const totalWeight = calculateTotalWeight(cargoLines);
   const linearMeters = calculateLinearMeters(cargoLines);
