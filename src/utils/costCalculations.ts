@@ -22,10 +22,11 @@ export interface CargoLine {
 
 // Calcula metros lineares totais a partir das linhas de carga
 export function calculateLinearMeters(lines: CargoLine[]): number {
-  // Paletes: soma normal (cada par = 1.2m)
-  const palletMeters = lines
+  // Paletes: somar todas as paletes primeiro, depois aplicar ceil(total/2)*1.2
+  const totalPallets = lines
     .filter(l => l.cargoType === "polymers" || l.cargoType === "equipment")
-    .reduce((sum, l) => sum + Math.ceil(l.numPallets / 2) * 1.2, 0);
+    .reduce((sum, l) => sum + l.numPallets, 0);
+  const palletMeters = totalPallets > 0 ? Math.ceil(totalPallets / 2) * 1.2 : 0;
 
   // Construção: comprimento linear = máximo entre todas as placas (não soma)
   const constructionLines = lines.filter(l => l.cargoType === "construction");
