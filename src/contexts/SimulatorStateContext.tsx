@@ -33,6 +33,8 @@ export interface SavedEstimate {
   numFreights?: number;
   constructionPombalenseCost?: number;
   extraRateApplied?: number;
+  chosenOption?: string;
+  observations?: string;
 }
 
 interface PolymerState {
@@ -92,6 +94,8 @@ function dbToEstimate(row: any): SavedEstimate {
     numFreights: row.num_freights ?? undefined,
     constructionPombalenseCost: row.construction_pombalense_cost != null ? Number(row.construction_pombalense_cost) : undefined,
     extraRateApplied: row.extra_rate_applied != null ? Number(row.extra_rate_applied) : undefined,
+    chosenOption: row.chosen_option ?? undefined,
+    observations: row.observations ?? undefined,
   };
 }
 
@@ -124,6 +128,8 @@ function estimateToDb(e: SavedEstimate): Record<string, unknown> {
     num_freights: e.numFreights ?? null,
     construction_pombalense_cost: e.constructionPombalenseCost ?? null,
     extra_rate_applied: e.extraRateApplied ?? null,
+    chosen_option: e.chosenOption ?? null,
+    observations: e.observations ?? null,
   };
 }
 
