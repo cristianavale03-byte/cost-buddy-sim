@@ -153,7 +153,7 @@ export function CostSimulator() {
   const zoneFound = results
     ? (tableToUse === "CC"
         ? ccPrices.some(p => p.destination.toLowerCase() === destination.toLowerCase() || p.destination.toLowerCase().includes(destination.toLowerCase()) || destination.toLowerCase().includes(p.destination.toLowerCase()))
-        : findCFZone(origin, destination) !== null)
+        : findCFZone(origin, destination) !== null || (results.heavyLoadComparison !== null && results.heavyLoadComparison.custoBaseEfetivo > 0))
     : true;
 
   const cheapest = results
