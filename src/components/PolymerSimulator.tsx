@@ -369,14 +369,23 @@ export function CostSimulator() {
                 </span>
               </div>
               {fleetVehicles.length > 0 && (
-                <div className="text-xs text-muted-foreground">
-                  Ocupação estimada:{" "}
-                  {fleetVehicles.map((v, i) => (
-                    <span key={v.name}>
-                      {i > 0 && " · "}
-                      <span className="font-medium text-foreground">{linearMeters.toFixed(1)} m</span> de {v.capacityMeters} m, <span className="font-medium text-foreground">{totalWeight.toFixed(1)} ton</span> de {v.capacityTon} ton ({v.name})
-                    </span>
-                  ))}
+                <div className="text-xs space-y-0.5">
+                  <span className="text-muted-foreground">Ocupação estimada:</span>
+                  {fleetVehicles.map((v) => {
+                    const metersOk = linearMeters <= v.capacityMeters;
+                    const weightOk = totalWeight <= v.capacityTon;
+                    const allOk = metersOk && weightOk;
+                    return (
+                      <div
+                        key={v.name}
+                        className={`rounded px-1.5 py-0.5 ${allOk ? "bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300" : "bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300"}`}
+                      >
+                        <span className="font-medium">{v.name}:</span>{" "}
+                        <span className={!metersOk ? "font-bold underline" : ""}>{linearMeters.toFixed(1)} m</span> / {v.capacityMeters} m,{" "}
+                        <span className={!weightOk ? "font-bold underline" : ""}>{totalWeight.toFixed(1)} ton</span> / {v.capacityTon} ton
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
