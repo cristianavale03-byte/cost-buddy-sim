@@ -249,31 +249,47 @@ export function calculateAllPolymerOptions(
     // CC logic: use longest plate to determine price category
     const maxLength = Math.max(...lines.map(l => l.lengthMeters), 0);
     let weightCost = 0;
+    let ccPricingLabel = lengthToCCLabel(maxLength);
 
-    if (maxLength > 8 || numDeliveries > 2) {
-      // > 8m OR > 2 deliveries → use 3 Eixos or Reboque (cheapest)
+    if (totalWeightTon >= 15 && totalWeightTon < 25) {
+      // >= 15t and < 25t → always Reboque
+      const costR = getCCPrice(destinationName, "trailer");
+      weightCost = costR ?? 0;
+      ccPricingLabel = "Reboque (peso ≥ 15 ton)";
+    } else if (maxLength > 8) {
+      // > 8m → 3 Eixos or Reboque (cheapest)
       const cost3 = getCCPrice(destinationName, "threeAxle");
       const costR = getCCPrice(destinationName, "trailer");
       if (cost3 !== null && costR !== null) {
-        weightCost = Math.min(cost3, costR);
+        if (cost3 <= costR) {
+          weightCost = cost3;
+          ccPricingLabel = "3 Eixos (comprimento > 8m)";
+        } else {
+          weightCost = costR;
+          ccPricingLabel = "Reboque (comprimento > 8m)";
+        }
       } else {
         weightCost = cost3 ?? costR ?? 0;
+        ccPricingLabel = cost3 !== null ? "3 Eixos (comprimento > 8m)" : "Reboque (comprimento > 8m)";
       }
-    } else if (totalWeightTon > 15) {
-      // > 15t → Reboque
-      const costR = getCCPrice(destinationName, "trailer");
-      weightCost = costR ?? 0;
+    } else if (numDeliveries > 2) {
+      // > 2 deliveries and weight < 15t → 3 Eixos
+      const cost3 = getCCPrice(destinationName, "threeAxle");
+      weightCost = cost3 ?? 0;
+      ccPricingLabel = "3 Eixos (> 2 deslocações)";
     } else {
       const ccField = lengthToCCField(maxLength);
       if (ccField) {
         const baseCost = getCCPrice(destinationName, ccField);
         if (baseCost !== null) {
           weightCost = baseCost;
+          // ccPricingLabel already set by lengthToCCLabel
         } else {
           // Fallback: 3 Eixos → Reboque
           const cost3 = getCCPrice(destinationName, "threeAxle");
           const costR = getCCPrice(destinationName, "trailer");
           weightCost = cost3 ?? costR ?? 0;
+          ccPricingLabel = cost3 !== null ? "3 Eixos (fallback)" : "Reboque (fallback)";
         }
       }
     }
@@ -284,7 +300,7 @@ export function calculateAllPolymerOptions(
       deliveryCost,
       totalCost: weightCost + deliveryCost,
       numFreights: numDeliveries,
-      zoneName: lengthToCCLabel(maxLength),
+      zoneName: ccPricingLabel,
     };
   } else {
     // CF logic (existing)
