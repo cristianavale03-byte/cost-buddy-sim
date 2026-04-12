@@ -390,6 +390,9 @@ export function ArchivePanel() {
                 {detailEstimate.extraRateApplied != null && detailEstimate.extraRateApplied > 0 && (
                   <DetailRow label="Taxa extra aplicada" value={`${detailEstimate.extraRateApplied}%`} />
                 )}
+                {detailEstimate.chosenOption && (
+                  <DetailRow label="Opção realizada" value={detailEstimate.chosenOption} />
+                )}
               </div>
 
               {/* Cargo lines detail for polymers */}
@@ -424,6 +427,15 @@ export function ArchivePanel() {
                   <DetailRow label="Frota 9t" value={detailEstimate.fleet9tCost != null ? `${detailEstimate.fleet9tCost.toFixed(2)} €` : "—"} />
                   <DetailRow label="Frota 15t" value={detailEstimate.fleet15tCost != null ? `${detailEstimate.fleet15tCost.toFixed(2)} €` : "—"} />
                   <DetailRow label="Mais económico" value={detailEstimate.cheapestOption ?? "—"} />
+                </div>
+              </div>
+
+              {detailEstimate.observations && (
+                <div>
+                  <p className="font-semibold text-xs mb-1">Observações</p>
+                  <p className="text-xs text-muted-foreground whitespace-pre-wrap">{detailEstimate.observations}</p>
+                </div>
+              )}
                 </div>
               </div>
             </div>
