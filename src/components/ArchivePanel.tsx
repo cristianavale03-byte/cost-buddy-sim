@@ -435,6 +435,7 @@ export function ArchivePanel() {
                   <p className="font-semibold text-xs mb-1">Observações</p>
                   <p className="text-xs text-muted-foreground whitespace-pre-wrap">{detailEstimate.observations}</p>
                 </div>
+              )}
             </div>
           )}
         </DialogContent>
