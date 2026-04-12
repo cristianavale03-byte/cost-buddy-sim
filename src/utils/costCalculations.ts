@@ -22,14 +22,18 @@ export interface CargoLine {
 
 // Calcula metros lineares totais a partir das linhas de carga
 export function calculateLinearMeters(lines: CargoLine[]): number {
-  return lines.reduce((sum, line) => {
-    if (line.cargoType === "polymers" || line.cargoType === "equipment") {
-      // 2 paletes lado a lado = 1.2m de comprimento
-      return sum + Math.ceil(line.numPallets / 2) * 1.2;
-    }
-    // construction — comprimento da placa
-    return sum + line.lengthMeters;
-  }, 0);
+  // Paletes: soma normal (cada par = 1.2m)
+  const palletMeters = lines
+    .filter(l => l.cargoType === "polymers" || l.cargoType === "equipment")
+    .reduce((sum, l) => sum + Math.ceil(l.numPallets / 2) * 1.2, 0);
+
+  // Construção: comprimento linear = máximo entre todas as placas (não soma)
+  const constructionLines = lines.filter(l => l.cargoType === "construction");
+  const constructionMeters = constructionLines.length > 0
+    ? Math.max(...constructionLines.map(l => l.lengthMeters))
+    : 0;
+
+  return palletMeters + constructionMeters;
 }
 
 // Soma o peso total (ton) de todas as linhas
