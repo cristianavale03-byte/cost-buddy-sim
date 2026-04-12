@@ -364,13 +364,13 @@ export function CostSimulator() {
                   Tabela Pombalense: <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 hover:bg-blue-100">{tableToUse}</Badge>
                 </span>
               </div>
-              {viableFleet.length > 0 && (
+              {fleetVehicles.length > 0 && (
                 <div className="text-xs text-muted-foreground">
                   Ocupação estimada:{" "}
-                  {viableFleet.map((v, i) => (
+                  {fleetVehicles.map((v, i) => (
                     <span key={v.name}>
                       {i > 0 && " · "}
-                      <span className="font-medium text-foreground">{linearMeters.toFixed(1)} m</span> de {v.capacityMeters} m ({v.name})
+                      <span className="font-medium text-foreground">{linearMeters.toFixed(1)} m</span> de {v.capacityMeters} m, <span className="font-medium text-foreground">{totalWeight.toFixed(1)} ton</span> de {v.capacityTon} ton ({v.name})
                     </span>
                   ))}
                 </div>
