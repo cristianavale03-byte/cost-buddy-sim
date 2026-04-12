@@ -40,6 +40,7 @@ export function CostSimulator() {
   const [estimateName, setEstimateName] = useState("");
   const [chosenOption, setChosenOption] = useState("");
   const [observations, setObservations] = useState("");
+  const [manualCosts, setManualCosts] = useState<Record<string, string>>({});
 
   const totalWeight = calculateTotalWeight(cargoLines);
   const linearMeters = calculateLinearMeters(cargoLines);
