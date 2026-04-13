@@ -324,6 +324,7 @@ export function CostSimulator() {
                   <TableHead className="text-xs py-1">Nº Paletes</TableHead>
                   <TableHead className="text-xs py-1">Comp. (m)</TableHead>
                   <TableHead className="text-xs py-1">Nº Placas</TableHead>
+                  <TableHead className="text-xs py-1">Sobreponível</TableHead>
                   <TableHead className="w-10 py-1"></TableHead>
                 </TableRow>
               </TableHeader>
