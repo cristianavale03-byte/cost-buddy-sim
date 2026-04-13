@@ -208,6 +208,12 @@ export function CostSimulator() {
             destination.toLowerCase().includes(p.destination.toLowerCase()),
         )
       : findCFZone(origin, destination) !== null ||
+        ccPrices.some(
+          (p) =>
+            p.destination.toLowerCase() === destination.toLowerCase() ||
+            p.destination.toLowerCase().includes(destination.toLowerCase()) ||
+            destination.toLowerCase().includes(p.destination.toLowerCase()),
+        ) ||
         (results.heavyLoadComparison !== null && results.heavyLoadComparison.custoBaseEfetivo > 0)
     : true;
 
