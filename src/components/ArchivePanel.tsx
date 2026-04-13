@@ -417,7 +417,7 @@ export function ArchivePanel() {
                           <TableRow key={i}>
                             <TableCell className="text-xs py-1">{line.client || "—"}</TableCell>
                             <TableCell className="text-xs py-1">{typeLabel}</TableCell>
-                            <TableCell className="text-xs py-1 text-right">{line.numPallets ?? "—"}</TableCell>
+                            <TableCell className="text-xs py-1 text-right">{line.cargoType !== "construction" ? (line.numPallets ?? "—") : "—"}</TableCell>
                             <TableCell className="text-xs py-1 text-right">{line.weightTon != null ? line.weightTon.toFixed(2) : "—"}</TableCell>
                             <TableCell className="text-xs py-1 text-right">{line.lengthMeters != null && line.lengthMeters > 0 ? line.lengthMeters.toFixed(1) : "—"}</TableCell>
                             <TableCell className="text-xs py-1 text-right">{line.numPlates != null && line.numPlates > 0 ? line.numPlates : "—"}</TableCell>
