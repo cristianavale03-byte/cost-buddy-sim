@@ -352,6 +352,7 @@ export function ArchivePanel() {
                       </Badge>
                     ) : "—"}
                   </TableCell>
+                  <TableCell className="text-xs py-2">{e.chosenOption ?? "—"}</TableCell>
                   <TableCell className="py-2 flex gap-1">
                     {/* IMPROVED: detail view button */}
                     <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setDetailEstimate(e)}>
