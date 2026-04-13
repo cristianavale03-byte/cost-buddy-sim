@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { Plus, Trash2, TrendingDown, Info, RotateCcw, Save, Check, X } from "lucide-react";
 import { origins, cfZones, ccPrices, fleetVehicles } from "@/data/fleetData";
 import { getEstimatedRoundTripKm } from "@/data/distanceData";
@@ -92,7 +93,7 @@ export function CostSimulator() {
     }
   };
 
-  const updateLine = (id: string, field: keyof CargoLine, value: string | number) => {
+  const updateLine = (id: string, field: keyof CargoLine, value: string | number | boolean) => {
     setCargoLines(cargoLines.map((l) => (l.id === id ? { ...l, [field]: value } : l)));
   };
 
