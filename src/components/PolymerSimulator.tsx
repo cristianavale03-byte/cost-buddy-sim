@@ -382,9 +382,9 @@ export function CostSimulator() {
                           <span className="text-xs text-muted-foreground">—</span>
                         )}
                       </TableCell>
-                      {/* Comp. (m) — visible for construction */}
+                      {/* Comp. (m) — visible for construction and equipment */}
                       <TableCell className="py-1">
-                        {isConstruction ? (
+                        {isConstruction || line.cargoType === "equipment" ? (
                           <Input
                             className="h-8"
                             type="number"
@@ -409,6 +409,17 @@ export function CostSimulator() {
                               updateLine(line.id, "numPlates", Math.max(1, parseInt(e.target.value) || 1))
                             }
                             placeholder="1"
+                          />
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      {/* Sobreponível — visible for equipment only */}
+                      <TableCell className="py-1">
+                        {line.cargoType === "equipment" ? (
+                          <Switch
+                            checked={!!line.stackable}
+                            onCheckedChange={(checked) => updateLine(line.id, "stackable", checked)}
                           />
                         ) : (
                           <span className="text-xs text-muted-foreground">—</span>
