@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Plus, Trash2, TrendingDown, Info, RotateCcw, Save, Check, X } from "lucide-react";
 import { origins, cfZones, ccPrices, fleetVehicles } from "@/data/fleetData";
 import { getEstimatedRoundTripKm } from "@/data/distanceData";
@@ -322,7 +323,19 @@ export function CostSimulator() {
                   <TableHead className="text-xs py-1 w-[130px]">Tipo de Carga</TableHead>
                   <TableHead className="text-xs py-1">Peso (ton)</TableHead>
                   <TableHead className="text-xs py-1">Nº Paletes</TableHead>
-                  <TableHead className="text-xs py-1">Comp. (m)</TableHead>
+                  <TableHead className="text-xs py-1">
+                    <span className="inline-flex items-center gap-1">
+                      Comp. (m)
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Comprimento linear que esta carga ocupa no camião (em metros)</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </span>
+                  </TableHead>
                   <TableHead className="text-xs py-1">Nº Placas</TableHead>
                   <TableHead className="text-xs py-1">Sobreponível</TableHead>
                   <TableHead className="w-10 py-1"></TableHead>
