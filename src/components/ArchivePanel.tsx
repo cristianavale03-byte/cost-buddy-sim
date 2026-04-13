@@ -395,24 +395,33 @@ export function ArchivePanel() {
                 )}
               </div>
 
-              {/* Cargo lines detail for polymers */}
-              {detailEstimate.type === "polymers" && detailEstimate.cargoLines && (detailEstimate.cargoLines as CargoLine[]).length > 0 && (
+              {/* Cargo lines detail */}
+              {detailEstimate.cargoLines && (detailEstimate.cargoLines as CargoLine[]).length > 0 && (
                 <div>
-                  <p className="font-semibold text-xs mb-1">Clientes ({(detailEstimate.cargoLines as CargoLine[]).length})</p>
+                  <p className="font-semibold text-xs mb-1">Linhas de carga ({(detailEstimate.cargoLines as CargoLine[]).length})</p>
                   <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead className="text-xs py-1">Cliente</TableHead>
+                        <TableHead className="text-xs py-1">Tipo</TableHead>
+                        <TableHead className="text-xs py-1 text-right">Paletes</TableHead>
                         <TableHead className="text-xs py-1 text-right">Peso (ton)</TableHead>
+                        <TableHead className="text-xs py-1 text-right">Comp. (m)</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {(detailEstimate.cargoLines as CargoLine[]).map((line, i) => (
-                        <TableRow key={i}>
-                          <TableCell className="text-xs py-1">{line.client || "—"}</TableCell>
-                          <TableCell className="text-xs py-1 text-right">{line.weightTon?.toFixed(2) ?? "0"}</TableCell>
-                        </TableRow>
-                      ))}
+                      {(detailEstimate.cargoLines as CargoLine[]).map((line, i) => {
+                        const typeLabel = line.cargoType === "polymers" ? "Polímeros" : line.cargoType === "equipment" ? "Equipamentos" : line.cargoType === "construction" ? "Construção" : line.cargoType ?? "—";
+                        return (
+                          <TableRow key={i}>
+                            <TableCell className="text-xs py-1">{line.client || "—"}</TableCell>
+                            <TableCell className="text-xs py-1">{typeLabel}</TableCell>
+                            <TableCell className="text-xs py-1 text-right">{line.numPallets ?? "—"}</TableCell>
+                            <TableCell className="text-xs py-1 text-right">{line.weightTon != null ? line.weightTon.toFixed(2) : "—"}</TableCell>
+                            <TableCell className="text-xs py-1 text-right">{line.lengthMeters != null && line.lengthMeters > 0 ? line.lengthMeters.toFixed(1) : "—"}</TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </div>
