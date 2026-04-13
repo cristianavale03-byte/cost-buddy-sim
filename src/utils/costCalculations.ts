@@ -15,9 +15,10 @@ export interface CargoLine {
   // Polímeros e Equipamentos — por peso e paletes
   weightTon: number;
   numPallets: number; // nº de paletes (cada par ocupa 1.2m de comprimento)
-  // Construção — por comprimento
+  // Construção e Equipamentos — por comprimento
   lengthMeters: number; // comprimento da placa/chapa em metros
   numPlates: number; // nº de placas/chapas
+  stackable?: boolean; // equipamento sobreponível com construção
 }
 
 // Calcula metros lineares totais a partir das linhas de carga

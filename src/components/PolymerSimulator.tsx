@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { Plus, Trash2, TrendingDown, Info, RotateCcw, Save, Check, X } from "lucide-react";
 import { origins, cfZones, ccPrices, fleetVehicles } from "@/data/fleetData";
 import { getEstimatedRoundTripKm } from "@/data/distanceData";
@@ -92,7 +93,7 @@ export function CostSimulator() {
     }
   };
 
-  const updateLine = (id: string, field: keyof CargoLine, value: string | number) => {
+  const updateLine = (id: string, field: keyof CargoLine, value: string | number | boolean) => {
     setCargoLines(cargoLines.map((l) => (l.id === id ? { ...l, [field]: value } : l)));
   };
 
@@ -323,6 +324,7 @@ export function CostSimulator() {
                   <TableHead className="text-xs py-1">Nº Paletes</TableHead>
                   <TableHead className="text-xs py-1">Comp. (m)</TableHead>
                   <TableHead className="text-xs py-1">Nº Placas</TableHead>
+                  <TableHead className="text-xs py-1">Sobreponível</TableHead>
                   <TableHead className="w-10 py-1"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -380,9 +382,9 @@ export function CostSimulator() {
                           <span className="text-xs text-muted-foreground">—</span>
                         )}
                       </TableCell>
-                      {/* Comp. (m) — visible for construction */}
+                      {/* Comp. (m) — visible for construction and equipment */}
                       <TableCell className="py-1">
-                        {isConstruction ? (
+                        {isConstruction || line.cargoType === "equipment" ? (
                           <Input
                             className="h-8"
                             type="number"
@@ -407,6 +409,17 @@ export function CostSimulator() {
                               updateLine(line.id, "numPlates", Math.max(1, parseInt(e.target.value) || 1))
                             }
                             placeholder="1"
+                          />
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      {/* Sobreponível — visible for equipment only */}
+                      <TableCell className="py-1">
+                        {line.cargoType === "equipment" ? (
+                          <Switch
+                            checked={!!line.stackable}
+                            onCheckedChange={(checked) => updateLine(line.id, "stackable", checked)}
                           />
                         ) : (
                           <span className="text-xs text-muted-foreground">—</span>
