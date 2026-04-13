@@ -309,10 +309,48 @@ export function calculateAllPolymerOptions(
       zoneName: ccPricingLabel,
     };
   } else {
-    // CF logic (existing)
-    pombalense = calculatePombalenseCost(totalWeightTon, originName, destinationName, numDeliveries);
-    pombalense.numFreights = numDeliveries;
-    pombalense.totalCost = pombalense.weightCost + pombalense.deliveryCost;
+    // CF logic — try CF zone first, fallback to CC if not found
+    const cfZone = findCFZone(originName, destinationName);
+    if (cfZone) {
+      pombalense = calculatePombalenseCost(totalWeightTon, originName, destinationName, numDeliveries);
+      pombalense.numFreights = numDeliveries;
+      pombalense.totalCost = pombalense.weightCost + pombalense.deliveryCost;
+    } else {
+      // CF zone not found — fallback to CC table (3 Eixos / Reboque)
+      let weightCost = 0;
+      let ccPricingLabel = "Tabela CC (sem zona CF)";
+
+      if (totalWeightTon >= 15 && totalWeightTon < 25) {
+        const costR = getCCPrice(destinationName, "trailer");
+        weightCost = costR ?? 0;
+        ccPricingLabel = "Reboque — Tabela CC (peso ≥ 15 ton, sem zona CF)";
+      } else {
+        // Use cheapest between 3 Eixos and Reboque
+        const cost3 = getCCPrice(destinationName, "threeAxle");
+        const costR = getCCPrice(destinationName, "trailer");
+        if (cost3 !== null && costR !== null) {
+          if (cost3 <= costR) {
+            weightCost = cost3;
+            ccPricingLabel = "3 Eixos — Tabela CC (sem zona CF)";
+          } else {
+            weightCost = costR;
+            ccPricingLabel = "Reboque — Tabela CC (sem zona CF)";
+          }
+        } else {
+          weightCost = cost3 ?? costR ?? 0;
+          ccPricingLabel = cost3 !== null ? "3 Eixos — Tabela CC (sem zona CF)" : "Reboque — Tabela CC (sem zona CF)";
+        }
+      }
+
+      const deliveryCost = numDeliveries > 0 ? numDeliveries * deliveryCostPerEntry : 0;
+      pombalense = {
+        weightCost,
+        deliveryCost,
+        totalCost: weightCost + deliveryCost,
+        numFreights: numDeliveries,
+        zoneName: ccPricingLabel,
+      };
+    }
   }
 
   // Fleet options: only viable if weight AND linear meters fit
