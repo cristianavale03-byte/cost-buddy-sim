@@ -498,6 +498,10 @@ export function CostSimulator() {
                 </div>
               )}
             </div>
+              <div className="text-[10px] text-muted-foreground flex items-center gap-1 mt-1">
+                <Info className="h-3 w-3 shrink-0" />
+                Assumindo regresso em vazio para frota própria
+              </div>
 
             <div className="mt-2 flex items-center justify-end">
               <Button size="sm" onClick={simulate} disabled={totalKm <= 0 || totalWeight <= 0}>
