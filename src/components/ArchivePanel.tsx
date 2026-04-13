@@ -407,6 +407,7 @@ export function ArchivePanel() {
                         <TableHead className="text-xs py-1 text-right">Paletes</TableHead>
                         <TableHead className="text-xs py-1 text-right">Peso (ton)</TableHead>
                         <TableHead className="text-xs py-1 text-right">Comp. (m)</TableHead>
+                        <TableHead className="text-xs py-1 text-right">Placas</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -419,6 +420,7 @@ export function ArchivePanel() {
                             <TableCell className="text-xs py-1 text-right">{line.numPallets ?? "—"}</TableCell>
                             <TableCell className="text-xs py-1 text-right">{line.weightTon != null ? line.weightTon.toFixed(2) : "—"}</TableCell>
                             <TableCell className="text-xs py-1 text-right">{line.lengthMeters != null && line.lengthMeters > 0 ? line.lengthMeters.toFixed(1) : "—"}</TableCell>
+                            <TableCell className="text-xs py-1 text-right">{line.numPlates != null && line.numPlates > 0 ? line.numPlates : "—"}</TableCell>
                           </TableRow>
                         );
                       })}
