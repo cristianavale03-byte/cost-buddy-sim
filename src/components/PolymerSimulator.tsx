@@ -523,9 +523,9 @@ export function CostSimulator() {
                   <Label className="text-xs">Opção realizada</Label>
                   {(() => {
                     const allOptions = [
-                      { key: "Frota 6t", fleet: results?.fleetOptions?.find((o: any) => o.vehicleName === "Frota 6t") },
-                      { key: "Frota 9t", fleet: results?.fleetOptions?.find((o: any) => o.vehicleName === "Frota 9t") },
-                      { key: "Frota 15t", fleet: results?.fleetOptions?.find((o: any) => o.vehicleName === "Frota 15t") },
+                      { key: "Frota 6t", fleet: results?.fleetOptions?.find((o: any) => o.vehicleName?.startsWith("Frota 6t")) },
+                      { key: "Frota 9t", fleet: results?.fleetOptions?.find((o: any) => o.vehicleName?.startsWith("Frota 9t")) },
+                      { key: "Frota 15t", fleet: results?.fleetOptions?.find((o: any) => o.vehicleName?.startsWith("Frota 15t")) },
                       { key: "Pombalense", fleet: null },
                     ];
                     const pombalenseCost = zoneFound && results?.pombalense?.totalCost != null ? results.pombalense.totalCost : null;
