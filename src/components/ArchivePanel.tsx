@@ -2,9 +2,11 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, FileSpreadsheet, FileText, Archive, ArrowUpDown, Eye } from "lucide-react";
+import { Trash2, FileSpreadsheet, FileText, Archive, ArrowUpDown, Eye, Search } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useSimulatorState, type SavedEstimate } from "@/contexts/SimulatorStateContext";
 import type { CargoLine } from "@/utils/costCalculations";
@@ -45,7 +47,8 @@ export function ArchivePanel() {
   const [sortAsc, setSortAsc] = useState(false);
   // IMPROVED: detail dialog state
   const [detailEstimate, setDetailEstimate] = useState<SavedEstimate | null>(null);
-
+  const [searchName, setSearchName] = useState("");
+  const [filterType, setFilterType] = useState<"all" | "polymers" | "construction">("all");
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
       setSortAsc(!sortAsc);
@@ -75,7 +78,12 @@ export function ArchivePanel() {
     return sortAsc ? cmp : -cmp;
   };
 
-  const sorted = [...savedEstimates].sort(sortFn);
+  const filtered = savedEstimates.filter(e => {
+    if (searchName && !e.name.toLowerCase().includes(searchName.toLowerCase())) return false;
+    if (filterType !== "all" && e.type !== filterType) return false;
+    return true;
+  });
+  const sorted = [...filtered].sort(sortFn);
 
   const handleDelete = (id: string) => {
     setSavedEstimates(prev => prev.filter(e => e.id !== id));
@@ -259,11 +267,33 @@ export function ArchivePanel() {
         </Button>
       </div>
 
+      <div className="flex items-center gap-3 flex-wrap">
+        <div className="relative flex-1 min-w-[180px] max-w-xs">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <Input
+            placeholder="Pesquisar por nome..."
+            value={searchName}
+            onChange={e => setSearchName(e.target.value)}
+            className="h-8 text-xs pl-8"
+          />
+        </div>
+        <Select value={filterType} onValueChange={(v) => setFilterType(v as any)}>
+          <SelectTrigger className="h-8 text-xs w-[140px]">
+            <SelectValue placeholder="Tipo" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os tipos</SelectItem>
+            <SelectItem value="polymers">Polímeros</SelectItem>
+            <SelectItem value="construction">Construção</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2">
             <Archive className="h-4 w-4" />
-            Estimativas Guardadas ({savedEstimates.length})
+            Estimativas Guardadas ({filtered.length}{filtered.length !== savedEstimates.length ? ` de ${savedEstimates.length}` : ""})
           </CardTitle>
         </CardHeader>
         <CardContent className="p-3">
