@@ -283,6 +283,7 @@ export function ArchivePanel() {
                 <SortHeader label="Frota 9t (€)" sortKeyVal="fleet9t" />
                 <SortHeader label="Frota 15t (€)" sortKeyVal="fleet15t" />
                 <SortHeader label="Mais Económico" sortKeyVal="cheapest" />
+                <TableHead className="text-xs py-1">Opção Realizada</TableHead>
                 <TableHead className="w-10 py-1"></TableHead>
               </TableRow>
             </TableHeader>
@@ -351,6 +352,7 @@ export function ArchivePanel() {
                       </Badge>
                     ) : "—"}
                   </TableCell>
+                  <TableCell className="text-xs py-2">{e.chosenOption ?? "—"}</TableCell>
                   <TableCell className="py-2 flex gap-1">
                     {/* IMPROVED: detail view button */}
                     <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setDetailEstimate(e)}>
