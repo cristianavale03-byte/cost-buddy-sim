@@ -56,6 +56,191 @@ export function ConfigPanel() {
 
   return (
     <div className="space-y-6">
+      {/* IMPROVED: PDF upload to update CF/CC price tables */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Upload className="h-4 w-4" /> Atualizar Tabelas de Preços
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* === CF block === */}
+          <div className="space-y-3 border-b pb-6">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <h4 className="text-sm font-semibold">Tabela CF (Carga Fracionada)</h4>
+              {cfOverride && (
+                <Badge variant="default" className="bg-green-600 hover:bg-green-600">
+                  <CheckCircle2 className="h-3 w-3 mr-1" /> Tabela CF atualizada ({cfOverride.length} zonas)
+                </Badge>
+              )}
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <input
+                ref={cfFileRef}
+                type="file"
+                accept=".pdf,application/pdf"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) handleCFFile(f);
+                  e.target.value = "";
+                }}
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => cfFileRef.current?.click()}
+                disabled={cfProcessing}
+              >
+                <FileText className="h-4 w-4 mr-1" />
+                {cfProcessing ? "A processar PDF..." : "Carregar PDF CF"}
+              </Button>
+              {cfOverride && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => { clearOverrides("cf"); setCfParse(null); }}
+                >
+                  <RotateCcw className="h-4 w-4 mr-1" /> Repor tabela original
+                </Button>
+              )}
+            </div>
+
+            {cfParse && (
+              <div className="space-y-2">
+                <p className="text-sm">
+                  <strong>{cfParse.zones.length}</strong> zonas extraídas
+                </p>
+                {cfParse.zones.length > 0 && (
+                  <ul className="text-xs text-muted-foreground space-y-1 max-h-40 overflow-auto border rounded p-2">
+                    {cfParse.zones.map((z, i) => (
+                      <li key={i}>
+                        <span className="font-medium">{z.zoneName}</span> — {z.prices.length} entradas
+                        {z.beyondTenTonPerTon ? ` · além 10t: ${z.beyondTenTonPerTon}€/ton` : ""}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {cfParse.warnings.length > 0 && (
+                  <div className="border border-amber-400 bg-amber-50 dark:bg-amber-950/20 rounded p-2 text-xs space-y-1">
+                    <p className="font-semibold text-amber-700 dark:text-amber-400 flex items-center gap-1">
+                      <AlertTriangle className="h-3 w-3" /> Avisos de parse — verifica estes dados antes de confirmar
+                    </p>
+                    <ul className="list-disc list-inside text-amber-800 dark:text-amber-300">
+                      {cfParse.warnings.map((w, i) => <li key={i}>{w}</li>)}
+                    </ul>
+                  </div>
+                )}
+                {cfParse.zones.length > 0 && (
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      setCFOverride(cfParse.zones);
+                      setCfParse(null);
+                    }}
+                  >
+                    <CheckCircle2 className="h-4 w-4 mr-1" /> Confirmar e aplicar
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* === CC block === */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <h4 className="text-sm font-semibold">Tabela CC (Construção)</h4>
+              {ccOverride && (
+                <Badge variant="default" className="bg-green-600 hover:bg-green-600">
+                  <CheckCircle2 className="h-3 w-3 mr-1" /> Tabela CC atualizada ({ccOverride.length} destinos)
+                </Badge>
+              )}
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <input
+                ref={ccFileRef}
+                type="file"
+                accept=".pdf,application/pdf"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) handleCCFile(f);
+                  e.target.value = "";
+                }}
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => ccFileRef.current?.click()}
+                disabled={ccProcessing}
+              >
+                <FileText className="h-4 w-4 mr-1" />
+                {ccProcessing ? "A processar PDF..." : "Carregar PDF CC"}
+              </Button>
+              {ccOverride && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => { clearOverrides("cc"); setCcParse(null); }}
+                >
+                  <RotateCcw className="h-4 w-4 mr-1" /> Repor tabela original
+                </Button>
+              )}
+            </div>
+
+            {ccParse && (
+              <div className="space-y-2">
+                <p className="text-sm">
+                  <strong>{ccParse.entries.length}</strong> destinos extraídos
+                </p>
+                {ccParse.entries.length > 0 && (
+                  <ul className="text-xs text-muted-foreground space-y-1 border rounded p-2">
+                    {ccParse.entries.slice(0, 5).map((e, i) => (
+                      <li key={i}>
+                        <span className="font-medium">{e.destination}</span>
+                        {e.chapas2x1 ? ` · 2×1: ${e.chapas2x1}€` : ""}
+                        {e.chapas3x2 ? ` · 3×2: ${e.chapas3x2}€` : ""}
+                        {e.threeAxle ? ` · 3Eixos: ${e.threeAxle}€` : ""}
+                        {e.trailer ? ` · Reb: ${e.trailer}€` : ""}
+                      </li>
+                    ))}
+                    {ccParse.entries.length > 5 && (
+                      <li className="italic">… e mais {ccParse.entries.length - 5} destinos</li>
+                    )}
+                  </ul>
+                )}
+                {ccParse.warnings.length > 0 && (
+                  <div className="border border-amber-400 bg-amber-50 dark:bg-amber-950/20 rounded p-2 text-xs space-y-1">
+                    <p className="font-semibold text-amber-700 dark:text-amber-400 flex items-center gap-1">
+                      <AlertTriangle className="h-3 w-3" /> Avisos de parse — verifica estes dados antes de confirmar
+                    </p>
+                    <ul className="list-disc list-inside text-amber-800 dark:text-amber-300">
+                      {ccParse.warnings.map((w, i) => <li key={i}>{w}</li>)}
+                    </ul>
+                  </div>
+                )}
+                {ccParse.entries.length > 0 && (
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      setCCOverride(ccParse.entries);
+                      setCcParse(null);
+                    }}
+                  >
+                    <CheckCircle2 className="h-4 w-4 mr-1" /> Confirmar e aplicar
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
+
+          <p className="text-xs text-amber-700 dark:text-amber-400 flex items-start gap-1 border-t pt-3">
+            <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0" />
+            <span>O parse automático de PDF pode conter erros. Verifica sempre os avisos antes de confirmar. Em caso de dúvida, repõe a tabela original.</span>
+          </p>
+        </CardContent>
+      </Card>
+
       {/* IMPROVED: Pombalense extra rate config */}
       <Card>
         <CardHeader>
