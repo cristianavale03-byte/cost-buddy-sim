@@ -117,31 +117,267 @@ export function ArchivePanel() {
     XLSX.writeFile(wb, `estimativas-frota-AGI-${getDateString()}.xlsx`);
   };
 
-  // IMPROVED: export to PDF using jsPDF + autotable
+  // IMPROVED: export to PDF with corporate cover, branded header/footer, styled table and summary
   const exportPDF = () => {
-    const doc = new jsPDF({ orientation: "landscape" });
-    doc.setFontSize(14);
-    doc.text("Simulador de Custos de Frota — AGI", 14, 15);
-    doc.setFontSize(9);
-    doc.text(`Exportado em: ${formatDate(new Date().toISOString())}`, 14, 22);
+    // IMPROVED: corporate brand palette
+    const BRAND = {
+      navy: [22, 54, 92] as [number, number, number],
+      blue: [41, 85, 148] as [number, number, number],
+      lightBlue: [235, 242, 252] as [number, number, number],
+      green: [39, 111, 57] as [number, number, number],
+      lightGreen: [234, 248, 238] as [number, number, number],
+      gray: [100, 100, 105] as [number, number, number],
+      lightGray: [245, 245, 247] as [number, number, number],
+      white: [255, 255, 255] as [number, number, number],
+      black: [30, 30, 35] as [number, number, number],
+    };
 
-    const head = [["Nome", "Tipo", "Data/Hora", "Guardado por", "Rota", "Peso/Metros", "Pombalense (€)", "Frota 6t (€)", "Frota 9t (€)", "Frota 15t (€)", "Mais Económico"]];
+    const doc = new jsPDF({ orientation: "landscape" });
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const exportedAt = formatDate(new Date().toISOString());
+
+    // IMPROVED: cover page
+    doc.setFillColor(...BRAND.navy);
+    doc.rect(0, 0, pageWidth, pageHeight, "F");
+    // decorative block in lower third
+    doc.setFillColor(...BRAND.blue);
+    doc.rect(0, pageHeight * (2 / 3), pageWidth, pageHeight / 3, "F");
+
+    doc.setTextColor(...BRAND.white);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(48);
+    doc.text("AGI", pageWidth / 2, pageHeight / 3, { align: "center" });
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(22);
+    doc.text("Simulador de Custos de Frota", pageWidth / 2, pageHeight / 3 + 14, { align: "center" });
+
+    // separator line
+    doc.setDrawColor(...BRAND.white);
+    doc.setLineWidth(0.5);
+    const lineW = pageWidth * 0.6;
+    doc.line((pageWidth - lineW) / 2, pageHeight / 3 + 22, (pageWidth + lineW) / 2, pageHeight / 3 + 22);
+
+    doc.setTextColor(...BRAND.lightBlue);
+    doc.setFontSize(16);
+    doc.text("Arquivo de Estimativas", pageWidth / 2, pageHeight / 3 + 32, { align: "center" });
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(12);
+    doc.text(`Exportado em: ${exportedAt}`, pageWidth / 2, pageHeight / 3 + 42, { align: "center" });
+
+    doc.setFontSize(11);
+    doc.text(`${sorted.length} estimativa${sorted.length !== 1 ? "s" : ""} exportada${sorted.length !== 1 ? "s" : ""}`, pageWidth / 2, pageHeight - 20, { align: "center" });
+
+    doc.addPage();
+
+    // IMPROVED: per-page header/footer hook
+    const drawHeaderFooter = () => {
+      // header
+      doc.setFillColor(...BRAND.navy);
+      doc.rect(0, 0, pageWidth, 14, "F");
+      doc.setTextColor(...BRAND.white);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.text("AGI — Simulador de Custos de Frota", 10, 9);
+      doc.text("Arquivo de Estimativas", pageWidth - 10, 9, { align: "right" });
+      doc.setDrawColor(...BRAND.blue);
+      doc.setLineWidth(0.5);
+      doc.line(0, 14, pageWidth, 14);
+
+      // footer
+      doc.setDrawColor(...BRAND.blue);
+      doc.setLineWidth(0.5);
+      doc.line(0, pageHeight - 12, pageWidth, pageHeight - 12);
+      doc.setTextColor(...BRAND.gray);
+      doc.setFontSize(8);
+      doc.text(`Exportado em: ${exportedAt}`, 10, pageHeight - 5);
+      const pageNum = (doc as any).internal.getCurrentPageInfo().pageNumber;
+      const totalPages = doc.internal.getNumberOfPages();
+      doc.text(`Página ${pageNum} de ${totalPages}`, pageWidth - 10, pageHeight - 5, { align: "right" });
+    };
+
+    const head = [["Nome", "Tipo", "Data", "Rota", "Peso", "Pombalense", "Frota 6t", "Frota 9t", "Frota 15t", "Mais económico"]];
     const body = sorted.map(e => [
       e.name,
       e.type === "polymers" ? "Polímeros" : "Construção",
       formatDate(e.savedAt),
-      e.savedBy ?? "—",
       getRoute(e),
       getWeightOrMeters(e),
-      e.pombalenseTotalCost?.toFixed(2) ?? "—",
-      // IMPROVED: individual fleet cost columns in PDF
-      e.fleet6tCost?.toFixed(2) ?? "—",
-      e.fleet9tCost?.toFixed(2) ?? "—",
-      e.fleet15tCost?.toFixed(2) ?? "—",
+      e.pombalenseTotalCost != null ? `${e.pombalenseTotalCost.toFixed(2)} €` : "—",
+      e.fleet6tCost != null ? `${e.fleet6tCost.toFixed(2)} €` : "—",
+      e.fleet9tCost != null ? `${e.fleet9tCost.toFixed(2)} €` : "—",
+      e.fleet15tCost != null ? `${e.fleet15tCost.toFixed(2)} €` : "—",
       e.cheapestOption ?? "—",
     ]);
 
-    autoTable(doc, { head, body, startY: 28, styles: { fontSize: 8 }, headStyles: { fillColor: [41, 65, 148] } });
+    autoTable(doc, {
+      startY: 20,
+      margin: { top: 20, bottom: 16 },
+      head,
+      body,
+      theme: "plain",
+      headStyles: {
+        fillColor: BRAND.navy,
+        textColor: BRAND.white,
+        fontSize: 8,
+        fontStyle: "bold",
+        cellPadding: { top: 5, bottom: 5, left: 4, right: 4 },
+        halign: "left",
+      },
+      columnStyles: {
+        0: { cellWidth: 30 },
+        1: { cellWidth: 20 },
+        2: { cellWidth: 24 },
+        3: { cellWidth: 34 },
+        4: { cellWidth: 20 },
+        5: { cellWidth: 22, halign: "right" },
+        6: { cellWidth: 18, halign: "right" },
+        7: { cellWidth: 18, halign: "right" },
+        8: { cellWidth: 18, halign: "right" },
+        9: { cellWidth: 22 },
+      },
+      bodyStyles: {
+        fontSize: 8,
+        cellPadding: { top: 4, bottom: 4, left: 4, right: 4 },
+        textColor: BRAND.black,
+      },
+      alternateRowStyles: {
+        fillColor: BRAND.lightGray,
+      },
+      didParseCell: (data) => {
+        if (data.section === "body") {
+          const e = sorted[data.row.index];
+          if (!e) return;
+          const costs = [
+            { val: e.pombalenseTotalCost, col: 5 },
+            { val: e.fleet6tCost, col: 6 },
+            { val: e.fleet9tCost, col: 7 },
+            { val: e.fleet15tCost, col: 8 },
+          ].filter(c => c.val != null && c.val > 0) as { val: number; col: number }[];
+          if (costs.length > 0) {
+            const minVal = Math.min(...costs.map(c => c.val));
+            const cheapCol = costs.find(c => c.val === minVal);
+            if (cheapCol && data.column.index === cheapCol.col) {
+              data.cell.styles.fillColor = BRAND.lightGreen;
+              data.cell.styles.textColor = BRAND.green;
+              data.cell.styles.fontStyle = "bold";
+            }
+          }
+          if (data.column.index === 9) {
+            if (e.cheapestOption === "Pombalense") {
+              data.cell.styles.textColor = BRAND.green;
+              data.cell.styles.fontStyle = "bold";
+            } else if (e.cheapestOption) {
+              data.cell.styles.textColor = BRAND.blue;
+              data.cell.styles.fontStyle = "bold";
+            }
+          }
+        }
+      },
+      didDrawPage: () => {
+        drawHeaderFooter();
+      },
+    });
+
+    // IMPROVED: summary page
+    doc.addPage();
+    drawHeaderFooter();
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(16);
+    doc.setTextColor(...BRAND.navy);
+    doc.text("Sumário", 14, 25);
+    doc.setDrawColor(...BRAND.blue);
+    doc.setLineWidth(0.5);
+    doc.line(14, 28, pageWidth - 14, 28);
+
+    // Stats
+    const polyCount = sorted.filter(e => e.type === "polymers").length;
+    const conCount = sorted.filter(e => e.type === "construction").length;
+    let pombWins = 0;
+    let fleetWins = 0;
+    sorted.forEach(e => {
+      if (e.cheapestOption === "Pombalense") pombWins++;
+      else if (e.cheapestOption) fleetWins++;
+    });
+
+    const metrics: { label: string; value: string }[] = [
+      { label: "Total de estimativas", value: String(sorted.length) },
+      { label: "Polímeros / Construção", value: `${polyCount} / ${conCount}` },
+      { label: "Pombalense mais económica", value: String(pombWins) },
+      { label: "Frota própria mais económica", value: String(fleetWins) },
+    ];
+
+    const gridX = 14;
+    const gridY = 36;
+    const cellW = (pageWidth - 28 - 8) / 2;
+    const cellH = 26;
+    metrics.forEach((m, i) => {
+      const col = i % 2;
+      const row = Math.floor(i / 2);
+      const x = gridX + col * (cellW + 8);
+      const y = gridY + row * (cellH + 6);
+      doc.setFillColor(...BRAND.lightGray);
+      doc.roundedRect(x, y, cellW, cellH, 3, 3, "F");
+      doc.setTextColor(...BRAND.gray);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.text(m.label, x + 5, y + 9);
+      doc.setTextColor(...BRAND.navy);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(16);
+      doc.text(m.value, x + 5, y + 20);
+    });
+
+    // Average per type table
+    const types: Array<{ key: "polymers" | "construction"; label: string }> = [
+      { key: "polymers", label: "Polímeros" },
+      { key: "construction", label: "Construção" },
+    ];
+    const avgRows = types.map(t => {
+      const items = sorted.filter(e => e.type === t.key);
+      const pombs = items.map(e => e.pombalenseTotalCost).filter((v): v is number => v != null && v > 0);
+      const bestFleets = items
+        .map(e => {
+          const fc = [e.fleet6tCost, e.fleet9tCost, e.fleet15tCost].filter((v): v is number => v != null && v > 0);
+          return fc.length > 0 ? Math.min(...fc) : null;
+        })
+        .filter((v): v is number => v != null);
+      const avgPomb = pombs.length > 0 ? pombs.reduce((a, b) => a + b, 0) / pombs.length : null;
+      const avgFleet = bestFleets.length > 0 ? bestFleets.reduce((a, b) => a + b, 0) / bestFleets.length : null;
+      return [
+        t.label,
+        avgPomb != null ? `${avgPomb.toFixed(2)} €` : "—",
+        avgFleet != null ? `${avgFleet.toFixed(2)} €` : "—",
+      ];
+    });
+
+    autoTable(doc, {
+      startY: gridY + cellH * 2 + 6 + 10,
+      margin: { left: 14, right: 14, bottom: 16 },
+      head: [["Tipo", "Custo médio Pombalense", "Custo médio melhor frota"]],
+      body: avgRows,
+      theme: "plain",
+      headStyles: {
+        fillColor: BRAND.navy,
+        textColor: BRAND.white,
+        fontSize: 9,
+        fontStyle: "bold",
+        cellPadding: 4,
+      },
+      bodyStyles: {
+        fontSize: 9,
+        cellPadding: 4,
+        textColor: BRAND.black,
+      },
+      alternateRowStyles: { fillColor: BRAND.lightGray },
+      didDrawPage: () => {
+        drawHeaderFooter();
+      },
+    });
+
     doc.save(`estimativas-frota-AGI-${getDateString()}.pdf`);
   };
 
