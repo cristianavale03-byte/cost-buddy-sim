@@ -448,6 +448,49 @@ export function ArchivePanel() {
     return { avgDiff, pombWins, fleetWins, total: comparableEstimates.length };
   })();
 
+  // IMPROVED: average cost per km per option, based on saved estimates with totalKm > 0
+  const avgCostPerKm = (() => {
+    const acc = {
+      pombalense: { sum: 0, n: 0 },
+      fleet6t: { sum: 0, n: 0 },
+      fleet9t: { sum: 0, n: 0 },
+      fleet15t: { sum: 0, n: 0 },
+    };
+    savedEstimates.forEach(e => {
+      const km = e.totalKm ?? 0;
+      if (km <= 0) return;
+      if (e.pombalenseTotalCost != null && e.pombalenseTotalCost > 0) {
+        acc.pombalense.sum += e.pombalenseTotalCost / km;
+        acc.pombalense.n += 1;
+      }
+      if (e.fleet6tCost != null && e.fleet6tCost > 0) {
+        acc.fleet6t.sum += e.fleet6tCost / km;
+        acc.fleet6t.n += 1;
+      }
+      if (e.fleet9tCost != null && e.fleet9tCost > 0) {
+        acc.fleet9t.sum += e.fleet9tCost / km;
+        acc.fleet9t.n += 1;
+      }
+      if (e.fleet15tCost != null && e.fleet15tCost > 0) {
+        acc.fleet15t.sum += e.fleet15tCost / km;
+        acc.fleet15t.n += 1;
+      }
+    });
+    const fmt = (x: { sum: number; n: number }) =>
+      x.n > 0 ? { value: x.sum / x.n, n: x.n } : null;
+    return {
+      pombalense: fmt(acc.pombalense),
+      fleet6t: fmt(acc.fleet6t),
+      fleet9t: fmt(acc.fleet9t),
+      fleet15t: fmt(acc.fleet15t),
+    };
+  })();
+  const hasAnyKmStat =
+    !!avgCostPerKm.pombalense ||
+    !!avgCostPerKm.fleet6t ||
+    !!avgCostPerKm.fleet9t ||
+    !!avgCostPerKm.fleet15t;
+
   return (
     <div className="space-y-4">
       {/* IMPROVED: Average comparison banner */}
@@ -483,6 +526,37 @@ export function ArchivePanel() {
                   <span className="text-muted-foreground">Frota</span>
                 </div>
               </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* IMPROVED: average cost per km per option, based on saved estimates */}
+      {hasAnyKmStat && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Custo médio por km (com base nas estimativas guardadas)</CardTitle>
+          </CardHeader>
+          <CardContent className="py-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {[
+                { label: "Pombalense", stat: avgCostPerKm.pombalense, color: "text-green-600 dark:text-green-400" },
+                { label: "Frota 6t", stat: avgCostPerKm.fleet6t, color: "text-blue-600 dark:text-blue-400" },
+                { label: "Frota 9t", stat: avgCostPerKm.fleet9t, color: "text-blue-600 dark:text-blue-400" },
+                { label: "Frota 15t", stat: avgCostPerKm.fleet15t, color: "text-blue-600 dark:text-blue-400" },
+              ].map(item => (
+                <div key={item.label} className="rounded-md border bg-muted/30 px-3 py-2">
+                  <p className="text-[11px] text-muted-foreground">{item.label}</p>
+                  {item.stat ? (
+                    <>
+                      <p className={`text-base font-bold ${item.color}`}>{item.stat.value.toFixed(2)} €/km</p>
+                      <p className="text-[10px] text-muted-foreground">{item.stat.n} estimativa{item.stat.n > 1 ? "s" : ""}</p>
+                    </>
+                  ) : (
+                    <p className="text-base font-bold text-muted-foreground">—</p>
+                  )}
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>
