@@ -1,17 +1,56 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Info } from "lucide-react";
-import { fleetVehicles, cfZones, ccPrices, dimensionTypes, deliveryCostPerEntry, transferCosts } from "@/data/fleetData";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Info, Upload, RotateCcw, AlertTriangle, CheckCircle2, FileText } from "lucide-react";
+import { fleetVehicles, cfZones, ccPrices, dimensionTypes, deliveryCostPerEntry, transferCosts, type CFZone, type CCPriceEntry } from "@/data/fleetData";
 import { usePombalenseExtraRate } from "@/hooks/usePombalenseExtraRate";
+// IMPROVED: PDF upload + price-table overrides
+import { usePriceTableOverrides } from "@/hooks/usePriceTableOverrides";
+import { parseCFTableFromPDF, parseCCTableFromPDF } from "@/utils/pdfParser";
+
+type CFParseResult = { zones: CFZone[]; warnings: string[] } | null;
+type CCParseResult = { entries: CCPriceEntry[]; warnings: string[] } | null;
 
 export function ConfigPanel() {
   const [selectedOrigin, setSelectedOrigin] = useState("1");
   // IMPROVED: loadingRate from Supabase
   const { rate: extraRate, setRate: setExtraRate, loadingRate } = usePombalenseExtraRate();
+
+  // IMPROVED: PDF upload state
+  const { cfOverride, ccOverride, setCFOverride, setCCOverride, clearOverrides } = usePriceTableOverrides();
+  const cfFileRef = useRef<HTMLInputElement>(null);
+  const ccFileRef = useRef<HTMLInputElement>(null);
+  const [cfProcessing, setCfProcessing] = useState(false);
+  const [ccProcessing, setCcProcessing] = useState(false);
+  const [cfParse, setCfParse] = useState<CFParseResult>(null);
+  const [ccParse, setCcParse] = useState<CCParseResult>(null);
+
+  const handleCFFile = async (file: File) => {
+    setCfProcessing(true);
+    setCfParse(null);
+    try {
+      const result = await parseCFTableFromPDF(file);
+      setCfParse(result);
+    } finally {
+      setCfProcessing(false);
+    }
+  };
+
+  const handleCCFile = async (file: File) => {
+    setCcProcessing(true);
+    setCcParse(null);
+    try {
+      const result = await parseCCTableFromPDF(file);
+      setCcParse(result);
+    } finally {
+      setCcProcessing(false);
+    }
+  };
 
   const filteredZones = cfZones.filter(z => z.originId === Number(selectedOrigin));
 
