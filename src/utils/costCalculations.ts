@@ -7,6 +7,18 @@ import {
   type CFZone,
   type CCPriceEntry,
 } from "@/data/fleetData";
+// IMPROVED: read runtime overrides from localStorage to allow PDF-uploaded tables
+import { getCFOverrideSync, getCCOverrideSync } from "@/hooks/usePriceTableOverrides";
+
+function getActiveCFZones(): CFZone[] {
+  const ov = getCFOverrideSync();
+  return ov && ov.length > 0 ? ov : cfZones;
+}
+
+function getActiveCCPrices(): CCPriceEntry[] {
+  const ov = getCCOverrideSync();
+  return ov && ov.length > 0 ? ov : ccPrices;
+}
 
 export interface CargoLine {
   id: string;
@@ -106,7 +118,8 @@ export function findCFZone(originName: string, destinationName: string): CFZone 
     : originName.includes("Maia") ? 3
     : 0;
 
-  const zones = cfZones.filter(z => z.originId === originId);
+  // IMPROVED: use active CF zones (override-aware)
+  const zones = getActiveCFZones().filter(z => z.originId === originId);
   
   // Try exact match first
   for (const zone of zones) {
@@ -154,7 +167,8 @@ export function getCFWeightCost(zone: CFZone, weightKg: number): number {
 }
 
 export function getCCPrice(destinationName: string, ccField: keyof CCPriceEntry): number | null {
-  const entry = ccPrices.find(p => 
+  // IMPROVED: use active CC prices (override-aware)
+  const entry = getActiveCCPrices().find(p => 
     p.destination.toLowerCase() === destinationName.toLowerCase() ||
     p.destination.toLowerCase().includes(destinationName.toLowerCase()) ||
     destinationName.toLowerCase().includes(p.destination.toLowerCase())
