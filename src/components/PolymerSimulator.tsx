@@ -95,7 +95,14 @@ export function CostSimulator() {
   };
 
   const updateLine = (id: string, field: keyof CargoLine, value: string | number | boolean) => {
-    setCargoLines(cargoLines.map((l) => (l.id === id ? { ...l, [field]: value } : l)));
+    setCargoLines(cargoLines.map((l) => {
+      if (l.id !== id) return l;
+      if (field === "cargoType" && value === "equipment") {
+        // FIXED: equipment cannot be stackable
+        return { ...l, [field]: value, stackable: false };
+      }
+      return { ...l, [field]: value };
+    }));
   };
 
   const handleOriginChange = (val: string) => {
@@ -427,9 +434,9 @@ export function CostSimulator() {
                           <span className="text-xs text-muted-foreground">—</span>
                         )}
                       </TableCell>
-                      {/* Sobreponível — visible for equipment only */}
+                      {/* FIXED: Sobreponível — visible for polymers and construction only */}
                       <TableCell className="py-1">
-                        {line.cargoType === "equipment" ? (
+                        {line.cargoType === "polymers" || line.cargoType === "construction" ? (
                           <Switch
                             checked={!!line.stackable}
                             onCheckedChange={(checked) => updateLine(line.id, "stackable", checked)}
