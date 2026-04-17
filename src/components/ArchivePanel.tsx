@@ -300,7 +300,7 @@ export function ArchivePanel() {
           <Table>
             <TableHeader>
               <TableRow>
-                <SortHeader label="Nome" sortKeyVal="name" />
+                <SortHeader label="Nº Viagem" sortKeyVal="name" />
                 <SortHeader label="Tipo" sortKeyVal="type" />
                 <SortHeader label="Data/Hora" sortKeyVal="savedAt" />
                 {/* IMPROVED: new column for who saved the estimate */}
