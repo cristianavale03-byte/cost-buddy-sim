@@ -23,14 +23,17 @@ export interface CargoLine {
 
 // Calcula metros lineares totais a partir das linhas de carga
 export function calculateLinearMeters(lines: CargoLine[]): number {
-  // Paletes: somar paletes de polímeros + equipamentos NÃO sobreponíveis
+  // FIXED: equipamentos nunca são sobreponíveis — contam sempre como paletes
   const totalPallets = lines
-    .filter(l => (l.cargoType === "polymers") || (l.cargoType === "equipment" && !l.stackable))
+    .filter(l => l.cargoType === "equipment" || (l.cargoType === "polymers" && !l.stackable))
     .reduce((sum, l) => sum + l.numPallets, 0);
   const palletMeters = totalPallets > 0 ? Math.ceil(totalPallets / 2) * 1.2 : 0;
 
-  // Construção + equipamentos sobreponíveis: comprimento máximo (não soma)
-  const maxLengthLines = lines.filter(l => l.cargoType === "construction" || (l.cargoType === "equipment" && l.stackable));
+  // FIXED: sobreponível apenas para polímeros e construção
+  const maxLengthLines = lines.filter(l =>
+    l.cargoType === "construction" ||
+    (l.cargoType === "polymers" && l.stackable)
+  );
   const constructionMeters = maxLengthLines.length > 0
     ? Math.max(...maxLengthLines.map(l => l.lengthMeters))
     : 0;
