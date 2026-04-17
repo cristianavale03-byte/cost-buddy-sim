@@ -269,11 +269,11 @@ export function calculateAllPolymerOptions(
     let weightCost = 0;
     let ccPricingLabel = lengthToCCLabel(maxLength);
 
-    if (totalWeightTon >= 15 && totalWeightTon < 25) {
-      // >= 15t and < 25t → always Reboque
+    if (totalWeightTon > 15 && totalWeightTon <= 25) {
+      // FIXED: Reboque para >15 ton (15 ton ainda cabe em 3 Eixos), até 25 inclusive
       const costR = getCCPrice(destinationName, "trailer");
       weightCost = costR ?? 0;
-      ccPricingLabel = "Reboque (peso ≥ 15 ton)";
+      ccPricingLabel = "Reboque (peso > 15 ton)";
     } else if (maxLength > 8) {
       // > 8m → 3 Eixos or Reboque (cheapest)
       const cost3 = getCCPrice(destinationName, "threeAxle");
@@ -337,10 +337,11 @@ export function calculateAllPolymerOptions(
       let weightCost = 0;
       let ccPricingLabel = "Tabela CC (sem zona CF)";
 
-      if (totalWeightTon >= 15 && totalWeightTon < 25) {
+      if (totalWeightTon > 15 && totalWeightTon <= 25) {
+        // FIXED: Reboque para >15 ton, até 25 inclusive
         const costR = getCCPrice(destinationName, "trailer");
         weightCost = costR ?? 0;
-        ccPricingLabel = "Reboque — Tabela CC (peso ≥ 15 ton, sem zona CF)";
+        ccPricingLabel = "Reboque — Tabela CC (peso > 15 ton, sem zona CF)";
       } else {
         // Use cheapest between 3 Eixos and Reboque
         const cost3 = getCCPrice(destinationName, "threeAxle");
@@ -418,7 +419,8 @@ export function calculateAllPolymerOptions(
     // 1) Weight >= 15t and < 25t → force Reboque
     // 2) > 2 deliveries OR > 8t → force 3 Eixos
     // 3) Otherwise → cheapest option
-    if (totalWeightTon >= 15 && totalWeightTon < 25) {
+    if (totalWeightTon > 15 && totalWeightTon <= 25) {
+      // FIXED: Reboque para >15 ton, até 25 inclusive
       // Force Reboque
       custoTrailer = getCCPrice(destinationName, "trailer");
       const custoBaseEfetivo = custoTrailer ?? custoThreeAxle ?? custoCFIncremental;
