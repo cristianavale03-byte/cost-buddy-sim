@@ -531,6 +531,37 @@ export function ArchivePanel() {
         </Card>
       )}
 
+      {/* IMPROVED: average cost per km per option, based on saved estimates */}
+      {hasAnyKmStat && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Custo médio por km (com base nas estimativas guardadas)</CardTitle>
+          </CardHeader>
+          <CardContent className="py-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {[
+                { label: "Pombalense", stat: avgCostPerKm.pombalense, color: "text-green-600 dark:text-green-400" },
+                { label: "Frota 6t", stat: avgCostPerKm.fleet6t, color: "text-blue-600 dark:text-blue-400" },
+                { label: "Frota 9t", stat: avgCostPerKm.fleet9t, color: "text-blue-600 dark:text-blue-400" },
+                { label: "Frota 15t", stat: avgCostPerKm.fleet15t, color: "text-blue-600 dark:text-blue-400" },
+              ].map(item => (
+                <div key={item.label} className="rounded-md border bg-muted/30 px-3 py-2">
+                  <p className="text-[11px] text-muted-foreground">{item.label}</p>
+                  {item.stat ? (
+                    <>
+                      <p className={`text-base font-bold ${item.color}`}>{item.stat.value.toFixed(2)} €/km</p>
+                      <p className="text-[10px] text-muted-foreground">{item.stat.n} estimativa{item.stat.n > 1 ? "s" : ""}</p>
+                    </>
+                  ) : (
+                    <p className="text-base font-bold text-muted-foreground">—</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           {/* IMPROVED: export buttons */}
