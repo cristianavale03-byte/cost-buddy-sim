@@ -23,20 +23,33 @@ export interface CargoLine {
 
 // Calcula metros lineares totais a partir das linhas de carga
 export function calculateLinearMeters(lines: CargoLine[]): number {
-  // FIXED: equipamentos nunca são sobreponíveis — contam sempre como paletes
-  const totalPallets = lines
+  // FIXED: polymers stackable = max 2 pallets high, so floor space is halved
+  // Step 1: pallets that count fully (equipment always, polymers non-stackable)
+  const normalPallets = lines
     .filter(l => l.cargoType === "equipment" || (l.cargoType === "polymers" && !l.stackable))
     .reduce((sum, l) => sum + l.numPallets, 0);
-  const palletMeters = totalPallets > 0 ? Math.ceil(totalPallets / 2) * 1.2 : 0;
 
-  // FIXED: sobreponível apenas para polímeros e construção
-  const maxLengthLines = lines.filter(l =>
-    l.cargoType === "construction" ||
-    (l.cargoType === "polymers" && l.stackable)
-  );
-  const constructionMeters = maxLengthLines.length > 0
-    ? Math.max(...maxLengthLines.map(l => l.lengthMeters))
+  // Step 2: stackable polymers — divide pallets by 2 (stacked in height), round up
+  const stackablePallets = lines
+    .filter(l => l.cargoType === "polymers" && l.stackable)
+    .reduce((sum, l) => sum + l.numPallets, 0);
+  const stackablePalletsOnFloor = Math.ceil(stackablePallets / 2);
+
+  // Step 3: total pallets on floor → linear meters (2 pallets side by side = 1.2m)
+  const totalPalletsOnFloor = normalPallets + stackablePalletsOnFloor;
+  const palletMeters = totalPalletsOnFloor > 0 ? Math.ceil(totalPalletsOnFloor / 2) * 1.2 : 0;
+
+  // FIXED: Step 4: construction stackable — only max length counts (placed on top)
+  const constructionStackableLines = lines.filter(l => l.cargoType === "construction" && l.stackable);
+  const constructionStackableMeters = constructionStackableLines.length > 0
+    ? Math.max(...constructionStackableLines.map(l => l.lengthMeters))
     : 0;
+
+  // FIXED: Step 5: construction non-stackable — length counts normally
+  const constructionNormalLines = lines.filter(l => l.cargoType === "construction" && !l.stackable);
+  const constructionNormalMeters = constructionNormalLines.reduce((sum, l) => sum + l.lengthMeters, 0);
+
+  const constructionMeters = constructionStackableMeters + constructionNormalMeters;
 
   return palletMeters + constructionMeters;
 }
